@@ -1,0 +1,160 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hh;hpp;hxx;hm;inl;inc;ipp;xsd</Extensions>
+    </Filter>
+    <Filter Include="Resource Files">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="framework.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="targetver.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Resource.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="spikymusic.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="menu.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="colors.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="spikymusic.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="menu.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="spikymusic.rc">
+      <Filter>Resource Files</Filter>
+    </ResourceCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="small.ico">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="spikymusic.ico">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="Icon.ico">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="..\res\app_icon.ico">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="..\res\launcher_icon.ico">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="..\res\ms_b.ico">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="..\res\comment_w_normal.bmp">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="..\res\comment_w_pressed.bmp">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="..\res\upload_w_normal.bmp">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="..\res\upload_w_pressed.bmp">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="..\res\playlist_w_normal.bmp">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="..\res\playlist_w_pressed.bmp">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="..\res\favorite_list_w_normal.bmp">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="..\res\favorite_list_w_pressed.bmp">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="..\res\favorite_add_w_normal.bmp">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="..\res\favorite_add_w_pressed.bmp">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="..\res\fullscreen_w_normal.bmp">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="..\res\fullscreen_w_pressed.bmp">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="..\res\repeat_all_w_normal.bmp">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="..\res\repeat_all_w_pressed.bmp">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="..\res\repeat_one_w_pressed.bmp">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="..\res\shuffle_w_normal.bmp">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="..\res\shuffle_w_pressed.bmp">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="..\res\previous_w_normal.bmp">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="..\res\previous_w_pressed.bmp">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="..\res\play_w_normal.bmp">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="..\res\play_w_pressed.bmp">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="..\res\next_w_normal.bmp">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="..\res\next_w_pressed.bmp">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="..\res\sort_by_similarity_w_normal.bmp">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="..\res\sort_by_similarity_w_pressed.bmp">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="..\res\sort_by_ratings_w_normal.bmp">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="..\res\sort_by_ratings_w_pressed.bmp">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="..\res\scan_w_normal.bmp">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="..\res\scan_w_pressed.bmp">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="..\res\progress_bar_circle_w_normal.bmp">
+      <Filter>Resource Files</Filter>
+    </Image>
+  </ItemGroup>
+</Project>
