@@ -46,8 +46,10 @@
 #define IDB_SORT_BY_RATINGS_PRESSED     160
 #define IDB_SCAN_NORMAL                 161
 #define IDB_SCAN_PRESSED                162
-#define IDB_BITMAP1                     163
 #define IDB_PROGRESS_BAR_CIRCLE_NORMAL  163
+#define IDB_FAVORITE_ADD_NORMAL_LARGE   164
+#define IDB_BITMAP1                     165
+#define IDB_FAVORITE_ADD_PRESSED_LARGE  165
 #define ID_FILE_ADDFAVORITES            32771
 #define ID_FILE_CLEARFAVORITES          32772
 #define ID_FILE_PLAY                    32773
@@ -73,7 +75,7 @@
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NO_MFC                     1
-#define _APS_NEXT_RESOURCE_VALUE        164
+#define _APS_NEXT_RESOURCE_VALUE        166
 #define _APS_NEXT_COMMAND_VALUE         32789
 #define _APS_NEXT_CONTROL_VALUE         1000
 #define _APS_NEXT_SYMED_VALUE           110

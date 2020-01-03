@@ -170,7 +170,9 @@
     <Image Include="..\res\comment_w_normal.bmp" />
     <Image Include="..\res\comment_w_pressed.bmp" />
     <Image Include="..\res\favorite_add_w_normal.bmp" />
+    <Image Include="..\res\favorite_add_w_normal_large.bmp" />
     <Image Include="..\res\favorite_add_w_pressed.bmp" />
+    <Image Include="..\res\favorite_add_w_pressed_large.bmp" />
     <Image Include="..\res\favorite_list_w_normal.bmp" />
     <Image Include="..\res\favorite_list_w_pressed.bmp" />
     <Image Include="..\res\fullscreen_w_normal.bmp" />

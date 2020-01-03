@@ -15,7 +15,7 @@ WCHAR szTitle[MAX_LOADSTRING];                  // The title bar text
 WCHAR szWindowClass[MAX_LOADSTRING];            // the main window class name
 Menu menu;
 int i_min_menu_id = 1;
-int i_max_menu_id = 19;
+int i_max_menu_id = 20;
 int i_current_window = 1;
 
 // Forward declarations of functions included in this code module:

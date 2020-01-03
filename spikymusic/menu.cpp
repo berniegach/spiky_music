@@ -90,6 +90,13 @@ void Menu::createMainButtons()
 	h_play_time_txt[0]= CreateWindow(WC_STATIC, TEXT("00:00:00"), WS_CHILD | WS_VISIBLE | SS_LEFT , i_x, i_y, i_time_w, i_time_h, *h_parent, (HMENU)i_plat_time_txt_id[0], *hinst, NULL);
 	i_x = rect.right - 10 - 50;
 	h_play_time_txt[1] = CreateWindow(WC_STATIC, TEXT("00:00:00"), WS_CHILD | WS_VISIBLE | SS_RIGHT, i_x, i_y, i_time_w, i_time_h, *h_parent, (HMENU)i_plat_time_txt_id[1], *hinst, NULL);
+	//check if the user has favorites added. if not show this button
+	i_x = rect.right / 2;
+	i_y = rect.bottom / 2;
+	int i_big_fav_add_w = 100;
+	bool has_favorites = false;
+	if(!has_favorites)
+		h_favorites_add_large_btn= CreateWindow(WC_BUTTON, TEXT(""), WS_CHILD | WS_VISIBLE | BS_OWNERDRAW, i_x, i_y, i_big_fav_add_w, i_big_fav_add_w, *h_parent, (HMENU)i_favorites_add_large_btn_id, *hinst, NULL);
 }
 void Menu::drawButtons(LPDRAWITEMSTRUCT pdis)
 {
@@ -168,6 +175,9 @@ void Menu::drawButtons(LPDRAWITEMSTRUCT pdis)
 		case 17:
 			hBitmap = LoadBitmap(*hinst, MAKEINTRESOURCE(IDB_PROGRESS_BAR_CIRCLE_NORMAL));			
 			break;
+		case 20:
+			hBitmap= LoadBitmap(*hinst, MAKEINTRESOURCE(IDB_FAVORITE_ADD_NORMAL_LARGE));
+			break;
 		default:
 			hBitmap = LoadBitmap(*hinst, MAKEINTRESOURCE(IDB_COMMENT_NORMAL));
 
@@ -177,8 +187,11 @@ void Menu::drawButtons(LPDRAWITEMSTRUCT pdis)
 	GetObject(hBitmap, sizeof(BITMAP), &bitmap);
 	hdcMem = CreateCompatibleDC(pdis->hDC);
 	SelectObject(hdcMem, hBitmap);
+	//stretch the resulting bitmap to fit the corresponding size
 	if(pdis->CtlID==17)
 		StretchBlt(pdis->hDC, pdis->rcItem.left, pdis->rcItem.top, pdis->rcItem.right - pdis->rcItem.left, pdis->rcItem.bottom - pdis->rcItem.top, hdcMem, 0, 0, 8, 8, SRCCOPY);
+	else if(pdis->CtlID == 20)
+		StretchBlt(pdis->hDC, pdis->rcItem.left, pdis->rcItem.top, pdis->rcItem.right - pdis->rcItem.left, pdis->rcItem.bottom - pdis->rcItem.top, hdcMem, 0, 0, 100, 100, SRCCOPY);
 	else
 		StretchBlt(pdis->hDC, pdis->rcItem.left, pdis->rcItem.top, pdis->rcItem.right - pdis->rcItem.left, pdis->rcItem.bottom - pdis->rcItem.top, hdcMem, 0, 0, 30, 30, SRCCOPY);
 	// if the button is selected
@@ -228,6 +241,9 @@ void Menu::drawButtons(LPDRAWITEMSTRUCT pdis)
 			case 14:
 				hBitmap = LoadBitmap(*hinst, MAKEINTRESOURCE(IDB_SCAN_PRESSED));
 				break;
+			case 20:
+				hBitmap = LoadBitmap(*hinst, MAKEINTRESOURCE(IDB_FAVORITE_ADD_PRESSED_LARGE));
+				break;
 			default:
 				hBitmap = LoadBitmap(*hinst, MAKEINTRESOURCE(IDB_COMMENT_PRESSED));
 
@@ -235,7 +251,10 @@ void Menu::drawButtons(LPDRAWITEMSTRUCT pdis)
 		GetObject(hBitmap, sizeof(BITMAP), &bitmap);
 		hdcMem = CreateCompatibleDC(pdis->hDC);
 		SelectObject(hdcMem, hBitmap);
-		StretchBlt(pdis->hDC, pdis->rcItem.left, pdis->rcItem.top, pdis->rcItem.right - pdis->rcItem.left, pdis->rcItem.bottom - pdis->rcItem.top, hdcMem, 0, 0, 30, 30, SRCCOPY);
+		if (pdis->CtlID == 20)
+			StretchBlt(pdis->hDC, pdis->rcItem.left, pdis->rcItem.top, pdis->rcItem.right - pdis->rcItem.left, pdis->rcItem.bottom - pdis->rcItem.top, hdcMem, 0, 0, 100, 100, SRCCOPY);
+		else
+			StretchBlt(pdis->hDC, pdis->rcItem.left, pdis->rcItem.top, pdis->rcItem.right - pdis->rcItem.left, pdis->rcItem.bottom - pdis->rcItem.top, hdcMem, 0, 0, 30, 30, SRCCOPY);
 	}
 	// Draw a focus rectangle if the button has the focus
     if (pdis->itemState & ODS_FOCUS)
@@ -266,6 +285,7 @@ void Menu::windowSizeChanged(HWND* hwnd)
 	RECT rect{};
 	if(!GetClientRect(*hwnd, &rect))
 		displayLastErrorDebug((LPTSTR)L"MoveWindow");
+	const RECT c_rect = rect;
 	int i_btn_width = 30, i_btn_height = 30;
 	int i_distance_between = 10;
 	int i_total_left_btns_width = (8 * i_distance_between) + (8 * i_btn_width);
@@ -353,6 +373,15 @@ void Menu::windowSizeChanged(HWND* hwnd)
 	MoveWindow(h_play_time_txt[0], i_x, i_y, i_time_w, i_time_h, true);
 	i_x= rect.right - 10 - 50;
 	MoveWindow(h_play_time_txt[1], i_x, i_y, i_time_w, i_time_h, true);
+	//move the big favorite add button to the middle
+	if (IsWindowVisible(h_favorites_add_large_btn))
+	{
+		i_x = c_rect.right / 2;
+		i_y = c_rect.bottom / 2;
+		int i_big_fav_add_w = 100;
+		MoveWindow(h_favorites_add_large_btn, i_x, i_y, i_big_fav_add_w, i_big_fav_add_w, true);
+	}
+	
 }
 void Menu::mainButtonClicked(int id,HWND h_clicked)
 {

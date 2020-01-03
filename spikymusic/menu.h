@@ -59,6 +59,8 @@ private:
 	HWND h_search_similar_songs_btn{};
 	HWND h_play_progress_bar[3];
 	HWND h_play_time_txt[2];
+	//main window buttons
+	HWND h_favorites_add_large_btn{};
 	//windows ids
 	const int i_comments_btn_id{ 1 };
 	const int i_upload_btn_id{2};
@@ -76,5 +78,6 @@ private:
 	const int i_search_similar_songs_btn{ 14 };
 	const int i_play_progress_bar_id[3]{ 15,16,17 };
 	const int i_plat_time_txt_id[2]{ 18,19 };
+	const int i_favorites_add_large_btn_id{ 20 };
 };
 
