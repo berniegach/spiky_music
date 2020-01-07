@@ -398,7 +398,15 @@ void Menu::mainButtonClicked(int id,HWND h_clicked)
 		i_shuffle_btn_status = (i_shuffle_btn_status + 1) % 2;
 		InvalidateRect(h_clicked, NULL, true);
 		UpdateWindow(h_clicked);
-	}	
+	}
+	else if (id == i_favorites_add_large_btn_id)
+	{
+		//the large button for adding favorites has been clicked
+		//open file explorer and get the song paths
+		//we pass one to tell the class that we are adding the initial favorites
+		FileExplorer file_explorer;
+		file_explorer.openDialogWindow(1);
+	}
 }
 
 void Menu::paint(HDC* hdc, HWND* hwnd)

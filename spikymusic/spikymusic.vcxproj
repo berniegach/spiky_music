@@ -152,6 +152,8 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="colors.h" />
+    <ClInclude Include="favorites.h" />
+    <ClInclude Include="file_explorer.h" />
     <ClInclude Include="framework.h" />
     <ClInclude Include="menu.h" />
     <ClInclude Include="Resource.h" />
@@ -159,6 +161,8 @@
     <ClInclude Include="targetver.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="favorites.cpp" />
+    <ClCompile Include="file_explorer.cpp" />
     <ClCompile Include="menu.cpp" />
     <ClCompile Include="spikymusic.cpp" />
   </ItemGroup>

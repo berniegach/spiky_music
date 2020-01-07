@@ -6,6 +6,7 @@
 #include <strsafe.h>
 #include <ObjIdl.h>
 #include <gdiplus.h>
+#include "file_explorer.h"
 
 using namespace Gdiplus;
 #pragma comment (lib,"Gdiplus.lib")
