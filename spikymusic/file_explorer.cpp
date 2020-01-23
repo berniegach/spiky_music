@@ -5,7 +5,7 @@ FileExplorer::FileExplorer()
 	
 }
 
-void FileExplorer::openDialogWindow(int for_what)
+void FileExplorer::openDialogWindow(int for_what, HWND parent)
 {
     OPENFILENAME ofn;       // common dialog box structure
     wchar_t szFile[1024];       // buffer for file name
@@ -21,7 +21,7 @@ void FileExplorer::openDialogWindow(int for_what)
     // use the contents of szFile to initialize itself.
     ofn.lpstrFile[0] = '\0';
     ofn.nMaxFile = sizeof(szFile);
-    ofn.lpstrFilter = L"Music\0*.mp3\0";
+    ofn.lpstrFilter = L"Music\0*.mp3\0Video\0*.mkv\0";
     ofn.nFilterIndex = 1;
     ofn.lpstrFileTitle = NULL;
     ofn.nMaxFileTitle = 0;
@@ -45,10 +45,10 @@ void FileExplorer::openDialogWindow(int for_what)
             str += (filename.length() + 1);
             v_file_paths.push_back(filename);            
         }
-        if (for_what == 1)
+        if (for_what == INITIAL_LOAD_FAVORITES)
         {
-            Favorites favorites;
-            favorites.initialAddFavorites(v_file_paths);
+            Favorites favorites(parent);
+            favorites.initialAddFavorites(v_file_paths); 
         }
     }
         /*hf = CreateFile(ofn.lpstrFile,

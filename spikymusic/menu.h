@@ -7,9 +7,11 @@
 #include <ObjIdl.h>
 #include <gdiplus.h>
 #include "file_explorer.h"
+#include <SDL.h>
 
 using namespace Gdiplus;
 #pragma comment (lib,"Gdiplus.lib")
+#pragma comment(lib,"SDL2.lib")
 
 class Menu
 {
@@ -62,6 +64,7 @@ private:
 	HWND h_play_time_txt[2];
 	//main window buttons
 	HWND h_favorites_add_large_btn{};
+	HWND h_sdl_window{};
 	//windows ids
 	const int i_comments_btn_id{ 1 };
 	const int i_upload_btn_id{2};
@@ -80,5 +83,6 @@ private:
 	const int i_play_progress_bar_id[3]{ 15,16,17 };
 	const int i_plat_time_txt_id[2]{ 18,19 };
 	const int i_favorites_add_large_btn_id{ 20 };
+	const int i_sdl_window_id = 21;
 };
 

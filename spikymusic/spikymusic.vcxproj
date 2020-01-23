@@ -72,6 +72,9 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
+    <IncludePath>C:\Program Files\boost\boost_1_72_0;C:\Users\berniegach\Documents\spikingacacia\spikymusic\res\others;C:\Users\berniegach\Documents\spikingacacia\spikymusic\res\sdl\SDL2-2.0.10\include;C:\Users\berniegach\Documents\spikingacacia\spikymusic\res\ffmpeg\32bit\include;$(IncludePath)</IncludePath>
+    <LibraryPath>C:\Program Files\boost\boost_1_72_0\stage\lib;C:\Users\berniegach\Documents\spikingacacia\spikymusic\res\sdl\SDL2-2.0.10\lib\x86;C:\Users\berniegach\Documents\spikingacacia\spikymusic\res\ffmpeg\32bit\lib;$(LibraryPath)</LibraryPath>
+    <ExecutablePath>$(ExecutablePath)</ExecutablePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
@@ -84,18 +87,26 @@
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
-      <PrecompiledHeader>
-      </PrecompiledHeader>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
+      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalLibraryDirectories>C:\Program Files\boost\boost_1_72_0\stage\lib;C:\Users\berniegach\Documents\spikingacacia\spikymusic\res\sdl\SDL2-2.0.10\lib\x86;C:\Users\berniegach\Documents\spikingacacia\spikymusic\res\ffmpeg\32bit\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <ShowProgress>LinkVerbose</ShowProgress>
     </Link>
+    <PostBuildEvent>
+      <Command>
+      </Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
@@ -152,17 +163,24 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="colors.h" />
+    <ClInclude Include="config.h" />
+    <ClInclude Include="dump_variant.h" />
     <ClInclude Include="favorites.h" />
+    <ClInclude Include="ffplay_variant.h" />
     <ClInclude Include="file_explorer.h" />
     <ClInclude Include="framework.h" />
+    <ClInclude Include="logger.h" />
     <ClInclude Include="menu.h" />
     <ClInclude Include="Resource.h" />
     <ClInclude Include="spikymusic.h" />
     <ClInclude Include="targetver.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="dump_variant.cpp" />
     <ClCompile Include="favorites.cpp" />
+    <ClCompile Include="ffplay_variant.cpp" />
     <ClCompile Include="file_explorer.cpp" />
+    <ClCompile Include="logger.cpp" />
     <ClCompile Include="menu.cpp" />
     <ClCompile Include="spikymusic.cpp" />
   </ItemGroup>

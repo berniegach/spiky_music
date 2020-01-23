@@ -90,6 +90,10 @@ void Menu::createMainButtons()
 	h_play_time_txt[0]= CreateWindow(WC_STATIC, TEXT("00:00:00"), WS_CHILD | WS_VISIBLE | SS_LEFT , i_x, i_y, i_time_w, i_time_h, *h_parent, (HMENU)i_plat_time_txt_id[0], *hinst, NULL);
 	i_x = rect.right - 10 - 50;
 	h_play_time_txt[1] = CreateWindow(WC_STATIC, TEXT("00:00:00"), WS_CHILD | WS_VISIBLE | SS_RIGHT, i_x, i_y, i_time_w, i_time_h, *h_parent, (HMENU)i_plat_time_txt_id[1], *hinst, NULL);
+	//create the window where sdl window will be attached to
+	//make it invisible
+	h_sdl_window = CreateWindow(WC_STATIC, TEXT(""), WS_CHILD | WS_VISIBLE, 0, 0, rect.right, i_y, *h_parent, (HMENU)i_sdl_window_id, *hinst, NULL);
+	ShowWindow(h_sdl_window, false);
 	//check if the user has favorites added. if not show this button
 	i_x = rect.right / 2;
 	i_y = rect.bottom / 2;
@@ -97,6 +101,7 @@ void Menu::createMainButtons()
 	bool has_favorites = false;
 	if(!has_favorites)
 		h_favorites_add_large_btn= CreateWindow(WC_BUTTON, TEXT(""), WS_CHILD | WS_VISIBLE | BS_OWNERDRAW, i_x, i_y, i_big_fav_add_w, i_big_fav_add_w, *h_parent, (HMENU)i_favorites_add_large_btn_id, *hinst, NULL);
+	
 }
 void Menu::drawButtons(LPDRAWITEMSTRUCT pdis)
 {
@@ -373,6 +378,9 @@ void Menu::windowSizeChanged(HWND* hwnd)
 	MoveWindow(h_play_time_txt[0], i_x, i_y, i_time_w, i_time_h, true);
 	i_x= rect.right - 10 - 50;
 	MoveWindow(h_play_time_txt[1], i_x, i_y, i_time_w, i_time_h, true);
+	//move the sdl background window
+	if (IsWindowVisible(h_sdl_window))
+		MoveWindow(h_sdl_window, 0, 0, rect.right, i_y, true);
 	//move the big favorite add button to the middle
 	if (IsWindowVisible(h_favorites_add_large_btn))
 	{
@@ -405,7 +413,15 @@ void Menu::mainButtonClicked(int id,HWND h_clicked)
 		//open file explorer and get the song paths
 		//we pass one to tell the class that we are adding the initial favorites
 		FileExplorer file_explorer;
-		file_explorer.openDialogWindow(1);
+		file_explorer.openDialogWindow(INITIAL_LOAD_FAVORITES, h_sdl_window);
+	}
+	else if (id == i_play_btn_id)
+	{
+		SDL_Event sdlevent;
+		sdlevent.type = SDL_KEYDOWN;
+		sdlevent.key.keysym.sym = SDLK_ESCAPE; 
+
+		SDL_PushEvent(&sdlevent);
 	}
 }
 
