@@ -8,6 +8,7 @@
 #include <gdiplus.h>
 #include "file_explorer.h"
 #include <SDL.h>
+#include "ffplay_variant.h"
 
 using namespace Gdiplus;
 #pragma comment (lib,"Gdiplus.lib")
@@ -29,6 +30,10 @@ public:
 private:
 	GdiplusStartupInput gdiplusStartupInput;
 	ULONG_PTR gdiplusToken;
+	Ffplay ffplay;
+	typedef enum SongPlaying { SONG_PLAY_EMPTY, SONG_PLAY_PLAYING, SONG_PLAY_PAUSED }song_play;
+	song_play song_playing{ SONG_PLAY_EMPTY };
+	bool song_opened{ false };
 	//windows handles
 	HWND* h_parent;
 	HINSTANCE* hinst;

@@ -307,7 +307,8 @@ class Ffplay
 {
 public:
     Ffplay();
-	Ffplay(string file, HWND);
+    void sdl_push_event();
+    void play_song(string file, HWND parent, bool* successfull);
     void displayLastErrorDebug(LPTSTR lpSzFunction);
     VideoState* stream_open(const char* filename, AVInputFormat* iformat);
     int frame_queue_init(FrameQueue* f, PacketQueue* pktq, int max_size, int keep_last);
@@ -457,7 +458,7 @@ private:
     int decoder_reorder_pts = -1;
     int autoexit;
     int exit_on_keydown;
-    int exit_on_mousedown;
+    int exit_on_mousedown=1;
     int loop = 1;
     int framedrop = -1;
     int infinite_buffer = -1;
@@ -492,7 +493,7 @@ private:
     SDL_RendererInfo renderer_info = { 0 };
     SDL_AudioDeviceID audio_dev;
 
-    static const struct TextureFormatEntry
+    const struct TextureFormatEntry
     {
         enum AVPixelFormat format;
         int texture_fmt;
@@ -530,6 +531,5 @@ private:
 #endif
     AVDictionary* format_opts, * codec_opts, * resample_opts;
     Dump dump;
-
 };
 

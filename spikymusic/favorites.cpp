@@ -14,7 +14,7 @@ void Favorites::initialAddFavorites(std::vector<std::wstring>& file_names)
 		std::string input{ file_names.at(c).begin(),file_names.at(c).end() };
 		if (file_names.size() == 1)
 		{
-            Ffplay ffplay(input, h_parent);
+           // Ffplay ffplay(input, h_parent);
 		}
 
 	}

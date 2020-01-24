@@ -2,15 +2,21 @@
 
 Ffplay::Ffplay()
 {
-	int flags;
-	VideoState* is;
+	
 }
-
-Ffplay::Ffplay(string file, HWND parent)
+void Ffplay::sdl_push_event()
 {
-	int flags;
-	VideoState* is;
-    input_filename = file;
+    SDL_Event sdlevent;
+    sdlevent.type = SDL_KEYDOWN;
+    sdlevent.key.keysym.sym = SDLK_SPACE;
+
+    SDL_PushEvent(&sdlevent);
+}
+void Ffplay::play_song(string file, HWND parent, bool* successfull)
+{
+    int flags;
+    VideoState* is;
+    input_filename = file; 
     logger.init();
     /* register all codecs, demux and protocols */
 #if CONFIG_AVDEVICE
@@ -20,7 +26,7 @@ Ffplay::Ffplay(string file, HWND parent)
     //check whether the filename is valid
     if (input_filename.empty())
     {
-        logger.log(logger.LEVEL_ERROR,"filename %s is not valid\n",file);
+        logger.log(logger.LEVEL_ERROR, "filename %s is not valid\n", file);
         return;
     }
     if (display_disable)
@@ -30,7 +36,7 @@ Ffplay::Ffplay(string file, HWND parent)
     flags = SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_TIMER;
     if (audio_disable)
         flags &= ~SDL_INIT_AUDIO;
-    else 
+    else
     {
         /* Try to work around an occasional ALSA buffer underflow issue when the
          * period size is NPOT due to ALSA resampling by forcing the buffer size. */
@@ -42,7 +48,7 @@ Ffplay::Ffplay(string file, HWND parent)
     SDL_SetMainReady();
     if (SDL_Init(flags))
     {
-        logger.log(logger.LEVEL_ERROR,"Could not initialize SDL - %s\n", SDL_GetError());
+        logger.log(logger.LEVEL_ERROR, "Could not initialize SDL - %s\n", SDL_GetError());
         logger.log(logger.LEVEL_ERROR, "(Did you set the DISPLAY variable?)\n");
         return;
     }
@@ -55,11 +61,11 @@ Ffplay::Ffplay(string file, HWND parent)
     {
         int flags = SDL_WINDOW_HIDDEN;
         if (alwaysontop)
-            #if SDL_VERSION_ATLEAST(2,0,5)
+#if SDL_VERSION_ATLEAST(2,0,5)
             flags |= SDL_WINDOW_ALWAYS_ON_TOP;
-        #else
+#else
             logger.log(logger.LEVEL_INFO, "SDL version doesn't support SDL_WINDOW_ALWAYS_ON_TOP. Feature will be inactive.\n");
-        #endif
+#endif
         if (borderless)
             flags |= SDL_WINDOW_BORDERLESS;
         else
@@ -69,27 +75,27 @@ Ffplay::Ffplay(string file, HWND parent)
             displayLastErrorDebug((LPTSTR)L"error creating window bg");*/
         SDL_InitSubSystem(flags);
         ShowWindow(parent, true);
-        window = SDL_CreateWindowFrom(parent); 
+        window = SDL_CreateWindowFrom(parent);
         //window = SDL_CreateWindow(program_name, SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, default_width, default_height, flags);
         SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "linear");
         if (window) {
             renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
             if (!renderer)
             {
-                logger.log(logger.LEVEL_ERROR, "Failed to initialize a hardware accelerated renderer: %s\n",SDL_GetError());
+                logger.log(logger.LEVEL_ERROR, "Failed to initialize a hardware accelerated renderer: %s\n", SDL_GetError());
                 renderer = SDL_CreateRenderer(window, -1, 0);
             }
             if (renderer)
             {
                 if (!SDL_GetRendererInfo(renderer, &renderer_info))
                 {
-                    logger.log(logger.LEVEL_INFO, "Initialized %s renderer.\n" ,renderer_info.name);
+                    logger.log(logger.LEVEL_INFO, "Initialized %s renderer.\n", renderer_info.name);
                 }
             }
         }
         if (!window || !renderer || !renderer_info.num_texture_formats)
         {
-            logger.log(logger.LEVEL_ERROR, "Failed to create window or renderer: %s\n",SDL_GetError());
+            logger.log(logger.LEVEL_ERROR, "Failed to create window or renderer: %s\n", SDL_GetError());
             return;
         }
     }
@@ -100,11 +106,11 @@ Ffplay::Ffplay(string file, HWND parent)
         logger.log(logger.LEVEL_ERROR, "Failed to initialize VideoState!\n");
         return;
     }
-
+    //the song is playing now
+    *successfull = true;
     event_loop(is);
-
+    *successfull = false;
     /* never returns */
-
 }
 void Ffplay::displayLastErrorDebug(LPTSTR lpSzFunction)
 {
@@ -887,6 +893,8 @@ void Ffplay::event_loop(VideoState* cur_stream)
 {
     SDL_Event event;
     double incr, pos, frac;
+    bool quit = false;
+
 
     for (;;)
     {
@@ -895,14 +903,17 @@ void Ffplay::event_loop(VideoState* cur_stream)
         switch (event.type)
         {
         case SDL_KEYDOWN:
-            if (exit_on_keydown || event.key.keysym.sym == SDLK_ESCAPE || event.key.keysym.sym == SDLK_q) {
+            if (exit_on_keydown || event.key.keysym.sym == SDLK_ESCAPE || event.key.keysym.sym == SDLK_q)
+            {
                 do_exit(cur_stream);
+                quit = true;
                 break;
             }
             // If we don't yet have a window, skip all key events, because read_thread might still be initializing...
             if (!cur_stream->width)
                 continue;
-            switch (event.key.keysym.sym) {
+            switch (event.key.keysym.sym) 
+            {
             case SDLK_f:
                 toggle_full_screen(cur_stream);
                 cur_stream->force_refresh = 1;
@@ -1009,7 +1020,8 @@ void Ffplay::event_loop(VideoState* cur_stream)
             }
             break;
         case SDL_MOUSEBUTTONDOWN:
-            if (exit_on_mousedown) {
+            if (exit_on_mousedown) 
+            {
                 do_exit(cur_stream);
                 break;
             }
@@ -1025,22 +1037,26 @@ void Ffplay::event_loop(VideoState* cur_stream)
                 }
             }
         case SDL_MOUSEMOTION:
-            if (cursor_hidden) {
+            if (cursor_hidden)
+            {
                 SDL_ShowCursor(1);
                 cursor_hidden = 0;
             }
             cursor_last_shown = av_gettime_relative();
-            if (event.type == SDL_MOUSEBUTTONDOWN) {
+            if (event.type == SDL_MOUSEBUTTONDOWN) 
+            {
                 if (event.button.button != SDL_BUTTON_RIGHT)
                     break;
                 x = event.button.x;
             }
-            else {
+            else
+            {
                 if (!(event.motion.state & SDL_BUTTON_RMASK))
                     break;
                 x = event.motion.x;
             }
-            if (seek_by_bytes || cur_stream->ic->duration <= 0) {
+            if (seek_by_bytes || cur_stream->ic->duration <= 0)
+            {
                 uint64_t size = avio_size(cur_stream->ic->pb);
                 stream_seek(cur_stream, size * x / cur_stream->width, 0, 1);
             }
@@ -1085,12 +1101,15 @@ void Ffplay::event_loop(VideoState* cur_stream)
         default:
             break;
         }
+        if (quit)
+            break;
     }
 }
 void Ffplay::refresh_loop_wait_event(VideoState* is, SDL_Event* event) {
     double remaining_time = 0.0;
     SDL_PumpEvents();
-    while (!SDL_PeepEvents(event, 1, SDL_GETEVENT, SDL_FIRSTEVENT, SDL_LASTEVENT)) {
+    while (!SDL_PeepEvents(event, 1, SDL_GETEVENT, SDL_FIRSTEVENT, SDL_LASTEVENT))
+    {
         if (!cursor_hidden && av_gettime_relative() - cursor_last_shown > CURSOR_HIDE_DELAY) {
             SDL_ShowCursor(0);
             cursor_hidden = 1;
@@ -1246,9 +1265,11 @@ int64_t Ffplay::frame_queue_last_pos(FrameQueue* f)
 
 void Ffplay::do_exit(VideoState* is)
 {
-    if (is) {
+    if(is)
+    {
         stream_close(is);
     }
+
     if (renderer)
         SDL_DestroyRenderer(renderer);
     if (window)
@@ -1262,7 +1283,7 @@ void Ffplay::do_exit(VideoState* is)
         printf("\n");
     SDL_Quit();
     logger.log(logger.LEVEL_INFO, "%s", "");
-    exit(0);
+    return;
 }
 void Ffplay::toggle_full_screen(VideoState* is)
 {
@@ -1885,7 +1906,7 @@ void Ffplay::sdl_audio_callback(void* opaque, Uint8* stream, int len)
 {
     VideoState* is = static_cast<VideoState*>( opaque);
     int audio_size, len1;
-
+    
     audio_callback_time = av_gettime_relative();
 
     while (len > 0) {
