@@ -25,15 +25,19 @@ public:
 	void windowSizeChanged(HWND* hwnd);
 	void mainButtonClicked(int id,HWND h_clicked);
 	void paint(HDC* hdc,HWND* hwnd);
+	typedef enum class SdlMusicOptions { SDL_SONG_QUIT, SDL_SONG_PLAY, SDL_SONG_PAUSE } sdl_music_options;
+	int send_sdl_music_event(SdlMusicOptions options);
+	void exit();
 	void displayLastErrorDebug(LPTSTR lpSzFunction);
 	~Menu();
 private:
 	GdiplusStartupInput gdiplusStartupInput;
 	ULONG_PTR gdiplusToken;
-	Ffplay ffplay;
-	typedef enum SongPlaying { SONG_PLAY_EMPTY, SONG_PLAY_PLAYING, SONG_PLAY_PAUSED }song_play;
-	song_play song_playing{ SONG_PLAY_EMPTY };
+	vector<wstring>songs_to_play;
+	typedef enum class SongPlaying { SONG_PLAY_EMPTY, SONG_PLAY_PLAYING, SONG_PLAY_PAUSED };
+	SongPlaying song_playing{ SongPlaying::SONG_PLAY_EMPTY };
 	bool song_opened{ false };
+	
 	//windows handles
 	HWND* h_parent;
 	HINSTANCE* hinst;

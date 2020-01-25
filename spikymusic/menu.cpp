@@ -418,29 +418,36 @@ void Menu::mainButtonClicked(int id,HWND h_clicked)
 	else if (id == i_play_btn_id)
 	{
 		//if there are no songs in the que find the song to play
-		if (!song_opened)
+		if ( song_playing==SongPlaying::SONG_PLAY_EMPTY && !song_opened)
 		{
 			FileExplorer file_explorer;
-			vector<wstring>songs_to_play = file_explorer.find_songs_to_play(GetParent(h_clicked));
+			songs_to_play = file_explorer.find_songs_to_play(GetParent(h_clicked));
 			//first we load the songs data
 			for (int c = 0; c < songs_to_play.size(); c++)
 			{
 				std::string input{ songs_to_play.at(c).begin(),songs_to_play.at(c).end() };
 				if (songs_to_play.size() == 1)
 				{
+					Ffplay ffplay;
 					ffplay.play_song(input, h_sdl_window, &song_opened);
-					OutputDebugString(L"song opened");
 				}
 
 			}
 		}
-		else
+		else if(song_opened)
 		{
-			SDL_Event sdlevent;
-			sdlevent.type = SDL_KEYDOWN;
-			sdlevent.key.keysym.sym = SDLK_q;
-			SDL_PushEvent(&sdlevent);
-			//ffplay.sdl_push_event();
+			//first we check if we are playing the first song
+			//or we are proceeding to play a song
+			if (song_playing == SongPlaying::SONG_PLAY_EMPTY || song_playing == SongPlaying::SONG_PLAY_PLAYING)
+			{
+				if (send_sdl_music_event(SdlMusicOptions::SDL_SONG_PAUSE))
+					song_playing = SongPlaying::SONG_PLAY_PAUSED;
+			}		
+			else if (song_playing == SongPlaying::SONG_PLAY_PAUSED)
+			{
+				if(send_sdl_music_event(SdlMusicOptions::SDL_SONG_PLAY))
+					song_playing = SongPlaying::SONG_PLAY_PLAYING;
+			}
 			
 		}
 		
@@ -467,7 +474,43 @@ void Menu::paint(HDC* hdc, HWND* hwnd)
 	SolidBrush solid_brush(Color(230, 230, 230));
 	graphics.FillRectangle(&solid_brush, i_x, i_y, i_w, i_h);
 }
-
+int Menu::send_sdl_music_event(SdlMusicOptions options)
+{
+	SDL_Event sdlevent;
+	int i_return = 0;
+	switch (options)
+	{
+	case SdlMusicOptions::SDL_SONG_QUIT:
+		sdlevent.type = SDL_KEYDOWN;
+		sdlevent.key.keysym.sym = SDLK_q;
+		i_return = SDL_PushEvent(&sdlevent);
+		break;
+	case SdlMusicOptions::SDL_SONG_PAUSE:
+		sdlevent.type = SDL_KEYDOWN;
+		sdlevent.key.keysym.sym = SDLK_SPACE;
+		i_return = SDL_PushEvent(&sdlevent);
+		break;
+	case SdlMusicOptions::SDL_SONG_PLAY:
+		sdlevent.type = SDL_KEYDOWN;
+		sdlevent.key.keysym.sym = SDLK_SPACE;
+		i_return = SDL_PushEvent(&sdlevent);
+		break;
+	}
+	return i_return;
+}
+/*
+we place exit functions here because when we close the main window the destructor is not called properly
+so we instead call this function to close
+*/
+void Menu::exit()
+{
+	//first we check if there is a song playing we shut it down
+	if (song_opened)
+	{
+		send_sdl_music_event(SdlMusicOptions::SDL_SONG_QUIT);
+	}
+	GdiplusShutdown(gdiplusToken);
+}
 void Menu::displayLastErrorDebug(LPTSTR lpSzFunction)
 {
 	LPVOID lpMsgBuf;
@@ -487,5 +530,4 @@ void Menu::displayLastErrorDebug(LPTSTR lpSzFunction)
 
 Menu::~Menu()
 {
-	GdiplusShutdown(gdiplusToken);
 }

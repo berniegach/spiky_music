@@ -202,6 +202,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		}
 		break;
 		case WM_DESTROY:
+			menu.exit();
 			PostQuitMessage(0);
 			break;
 		default:
