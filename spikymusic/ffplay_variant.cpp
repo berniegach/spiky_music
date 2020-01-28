@@ -76,7 +76,6 @@ void Ffplay::play_song(string file, HWND parent, bool* successfull)
         SDL_InitSubSystem(flags);
         ShowWindow(parent, true);
         window = SDL_CreateWindowFrom(parent);
-        //window = SDL_CreateWindow(program_name, SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, default_width, default_height, flags);
         SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "linear");
         if (window) {
             renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
@@ -663,6 +662,8 @@ int Ffplay::read_thread(void* arg)
 
     if (show_status)
         dump.dump_format(ic, 0, is->filename, 0);
+    //set the duration in the main window
+    set_duration_in_main_window(ic->duration);
 
     for (i = 0; i < ic->nb_streams; i++) {
         AVStream* st = ic->streams[i];
@@ -3087,6 +3088,30 @@ int Ffplay::opt_format(const char* arg)
         return AVERROR(EINVAL);
     }
     return 0;
+}
+/*
+set the duration in main window*/
+void Ffplay::set_duration_in_main_window( int64_t duration)
+{
+    int hours, mins, secs, us;
+    int64_t time = duration + (duration <= INT64_MAX - 5000 ? 5000 : 0);
+    secs = time / AV_TIME_BASE;
+    us = time % AV_TIME_BASE;
+    mins = secs / 60;
+    secs %= 60;
+    hours = mins / 60;
+    mins %= 60;
+    wchar_t txt[64];
+    if (hours > 0)
+        wsprintf(txt,L"%d:%d:%d", hours, mins, secs);
+    else if(mins>0)
+        wsprintf(txt, L"%d:%d", mins, secs);
+    else
+        wsprintf(txt, L"%d", secs); 
+   /* if (h_play_time_txt[1] == NULL)
+        OutputDebugStringW(L"INAVLIDE HANDLE\n");
+    if(!SetWindowTextW(h_play_time_txt[1], txt))
+        displayLastErrorDebug((LPTSTR)L"Could not set the window title");*/
 }
 Ffplay::~Ffplay()
 {

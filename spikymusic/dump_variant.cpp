@@ -10,7 +10,7 @@ Dump::Dump()
 void Dump::dump_format(AVFormatContext* ic, int index,    const char* url, int is_output)
 {
     int i;
-    uint8_t* printed = static_cast<uint8_t*>( ic->nb_streams ? av_mallocz(ic->nb_streams) : NULL);
+    uint8_t* printed = static_cast<uint8_t*>( ic->nb_streams ? av_mallocz(ic->nb_streams) : NULL); 
     if (ic->nb_streams && !printed)
         return;
 
@@ -536,6 +536,6 @@ void Dump::dump_spherical(void* ctx, AVCodecParameters* par, AVPacketSideData* s
             l, t, r, b);
     }
     else if (spherical->projection == AV_SPHERICAL_CUBEMAP) {
-        logger.log(logger.LEVEL_INFO, "[pad %lu ", (unsigned long)spherical->padding);
+        logger.log(logger.LEVEL_INFO, "[pad %" PRId32, (unsigned long)spherical->padding);
     }
 }

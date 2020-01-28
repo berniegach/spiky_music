@@ -1,4 +1,5 @@
 #include "menu.h"
+#include <future>
 
 Menu::Menu()
 {
@@ -149,7 +150,9 @@ void Menu::drawButtons(LPDRAWITEMSTRUCT pdis)
 			hBitmap = LoadBitmap(*hinst, MAKEINTRESOURCE(IDB_PREVIOUS_NORMAL));
 			break;
 		case 10:
-			hBitmap = LoadBitmap(*hinst, MAKEINTRESOURCE(IDB_PLAY_NORMAL));
+			song_playing == SongPlaying::SONG_PLAY_EMPTY || song_playing == SongPlaying::SONG_PLAY_PLAYING ?
+				hBitmap = LoadBitmap(*hinst, MAKEINTRESOURCE(IDB_PLAY_NORMAL)) :
+				hBitmap = LoadBitmap(*hinst, MAKEINTRESOURCE(IDB_PAUSE_W_NORMAL));
 			break;
 		case 11:
 			hBitmap = LoadBitmap(*hinst, MAKEINTRESOURCE(IDB_NEXT_NORMAL));
@@ -232,7 +235,9 @@ void Menu::drawButtons(LPDRAWITEMSTRUCT pdis)
 				hBitmap = LoadBitmap(*hinst, MAKEINTRESOURCE(IDB_PREVIOUS_PRESSED));
 				break;
 			case 10:
-				hBitmap = LoadBitmap(*hinst, MAKEINTRESOURCE(IDB_PLAY_PRESSED));
+				song_playing == SongPlaying::SONG_PLAY_EMPTY || song_playing == SongPlaying::SONG_PLAY_PLAYING ?
+					hBitmap = LoadBitmap(*hinst, MAKEINTRESOURCE(IDB_PLAY_PRESSED)) :
+					hBitmap = LoadBitmap(*hinst, MAKEINTRESOURCE(IDB_PAUSE_W_PRESSED));
 				break;
 			case 11:
 				hBitmap = LoadBitmap(*hinst, MAKEINTRESOURCE(IDB_NEXT_PRESSED));
@@ -393,16 +398,24 @@ void Menu::windowSizeChanged(HWND* hwnd)
 }
 void Menu::mainButtonClicked(int id,HWND h_clicked)
 {
+	using std::future;
+	using std::async;
+	using std::launch;
+
 	i_which_main_btn_pressed = id;
 
 	if (id == i_repeat_btn_id)
 	{
+		//there are three states in the repeat button
+		//no repeat, repeat one and repeat all
 		i_repeat_btn_status = (i_repeat_btn_status + 1) % 3;		
 		InvalidateRect(h_clicked, NULL, true);
 		UpdateWindow(h_clicked);
 	}
 	else if (id == i_shuffle_btn_id)
 	{
+		//there are two states in the shuffle button
+		//shuffle and dont shuffle
 		i_shuffle_btn_status = (i_shuffle_btn_status + 1) % 2;
 		InvalidateRect(h_clicked, NULL, true);
 		UpdateWindow(h_clicked);
@@ -429,7 +442,11 @@ void Menu::mainButtonClicked(int id,HWND h_clicked)
 				if (songs_to_play.size() == 1)
 				{
 					Ffplay ffplay;
-					ffplay.play_song(input, h_sdl_window, &song_opened);
+					std::thread th( &Ffplay::play_song, ffplay, input,h_sdl_window, &song_opened); 
+					//swap the local thread variable with global one so that the song can proceed playing
+					//when this function is out of scope
+					th.swap(thread_song);
+					OutputDebugString(L"contimuing");
 				}
 
 			}
@@ -448,9 +465,19 @@ void Menu::mainButtonClicked(int id,HWND h_clicked)
 				if(send_sdl_music_event(SdlMusicOptions::SDL_SONG_PLAY))
 					song_playing = SongPlaying::SONG_PLAY_PLAYING;
 			}
+			//we refresh the playing button so that when we click the button a second time it reflects the pause intent
+			InvalidateRect(h_clicked, NULL, true);
+			UpdateWindow(h_clicked);
 			
 		}
 		
+	}
+	else if (id = i_next_btn_id)
+	{
+		if (songs_to_play.size() > 1)
+		{
+
+		}
 	}
 }
 

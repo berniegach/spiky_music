@@ -203,6 +203,8 @@
     <Image Include="..\res\ms_b.ico" />
     <Image Include="..\res\next_w_normal.bmp" />
     <Image Include="..\res\next_w_pressed.bmp" />
+    <Image Include="..\res\pause_w_normal.bmp" />
+    <Image Include="..\res\pause_w_pressed.bmp" />
     <Image Include="..\res\playlist_w_normal.bmp" />
     <Image Include="..\res\playlist_w_pressed.bmp" />
     <Image Include="..\res\play_w_normal.bmp" />

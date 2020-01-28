@@ -9,11 +9,14 @@
 #include "file_explorer.h"
 #include <SDL.h>
 #include "ffplay_variant.h"
-
+#include <thread>
 using namespace Gdiplus;
 #pragma comment (lib,"Gdiplus.lib")
 #pragma comment(lib,"SDL2.lib")
 
+using std::array;
+using std::vector;
+using std::wstring;
 class Menu
 {
 public:
@@ -37,6 +40,7 @@ private:
 	typedef enum class SongPlaying { SONG_PLAY_EMPTY, SONG_PLAY_PLAYING, SONG_PLAY_PAUSED };
 	SongPlaying song_playing{ SongPlaying::SONG_PLAY_EMPTY };
 	bool song_opened{ false };
+	int current_song;
 	
 	//windows handles
 	HWND* h_parent;
@@ -70,7 +74,9 @@ private:
 	HWND h_sort_by_ratings_btn{};
 	HWND h_search_similar_songs_btn{};
 	HWND h_play_progress_bar[3];
+//public :
 	HWND h_play_time_txt[2];
+//private:
 	//main window buttons
 	HWND h_favorites_add_large_btn{};
 	HWND h_sdl_window{};
@@ -93,5 +99,7 @@ private:
 	const int i_plat_time_txt_id[2]{ 18,19 };
 	const int i_favorites_add_large_btn_id{ 20 };
 	const int i_sdl_window_id = 21;
+
+	std::thread thread_song;
 };
 

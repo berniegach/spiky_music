@@ -19,10 +19,5 @@ public:
 private:
 	PROCESS_INFORMATION piProcInfo;
 	HWND h_parent{};
-	HANDLE g_hChildStd_IN_Rd = NULL;
-	HANDLE g_hChildStd_IN_Wr = NULL;
-	HANDLE g_hChildStd_OUT_Rd = NULL;
-	HANDLE g_hChildStd_OUT_Wr = NULL;
-	HANDLE g_hInputFile = NULL;
 };
 

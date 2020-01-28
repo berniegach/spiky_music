@@ -40,6 +40,7 @@ extern "C"
 #include "logger.h"
 #include "dump_variant.h"
 #include <strsafe.h>
+#include "menu.h"
 
 
 #pragma comment(lib,"avcodec.lib")
@@ -116,6 +117,7 @@ extern "C"
 
 using std::string;
 using std::wstring;
+using std::array;
 typedef struct MyAVPacketList {
     AVPacket pkt;
     struct MyAVPacketList* next;
@@ -405,6 +407,7 @@ public:
     void print_error(const char* filename, int err);
     void outputDebugStr(string str);
     int opt_format( const char* arg);
+    void set_duration_in_main_window( int64_t duration);
     ~Ffplay();
 private:
     const char program_name[7] = "ffplay";
@@ -531,5 +534,8 @@ private:
 #endif
     AVDictionary* format_opts, * codec_opts, * resample_opts;
     Dump dump;
+    /*
+    info from menu.h*/
+    //array<HWND, 2> h_play_time_txt;
 };
 

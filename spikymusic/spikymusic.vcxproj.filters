@@ -195,5 +195,11 @@
     <Image Include="..\res\favorite_add_w_pressed_large.bmp">
       <Filter>Resource Files</Filter>
     </Image>
+    <Image Include="..\res\pause_w_normal.bmp">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="..\res\pause_w_pressed.bmp">
+      <Filter>Resource Files</Filter>
+    </Image>
   </ItemGroup>
 </Project>
