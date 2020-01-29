@@ -8,6 +8,7 @@
 #include <CommCtrl.h>
 #include <string>
 #include <vector>
+
 extern "C"
 {
 	#include "libavutil/avstring.h"
@@ -40,7 +41,6 @@ extern "C"
 #include "logger.h"
 #include "dump_variant.h"
 #include <strsafe.h>
-#include "menu.h"
 
 
 #pragma comment(lib,"avcodec.lib")
@@ -407,6 +407,7 @@ public:
     void print_error(const char* filename, int err);
     void outputDebugStr(string str);
     int opt_format( const char* arg);
+    int64_t get_song_duration();
     void set_duration_in_main_window( int64_t duration);
     ~Ffplay();
 private:
@@ -534,6 +535,9 @@ private:
 #endif
     AVDictionary* format_opts, * codec_opts, * resample_opts;
     Dump dump;
+    static bool abort;
+    static int64_t song_duration;
+   // Menu *menu_ptr;
     /*
     info from menu.h*/
     //array<HWND, 2> h_play_time_txt;

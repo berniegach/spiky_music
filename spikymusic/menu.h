@@ -31,6 +31,7 @@ public:
 	typedef enum class SdlMusicOptions { SDL_SONG_QUIT, SDL_SONG_PLAY, SDL_SONG_PAUSE } sdl_music_options;
 	int send_sdl_music_event(SdlMusicOptions options);
 	void exit();
+	void show(int64_t duration);
 	void displayLastErrorDebug(LPTSTR lpSzFunction);
 	~Menu();
 private:

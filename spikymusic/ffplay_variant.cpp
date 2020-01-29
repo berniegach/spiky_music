@@ -1,5 +1,10 @@
 #include "ffplay_variant.h"
 
+//ive added this variable to check if we are aborting the song play
+//and in so doing we wont proceed with the function sdl_audio_callback which for some reason
+//causes an access write violation while writing audio_callback_time
+bool Ffplay::abort = false;
+int64_t Ffplay::song_duration = 0;
 Ffplay::Ffplay()
 {
 	
@@ -18,6 +23,8 @@ void Ffplay::play_song(string file, HWND parent, bool* successfull)
     VideoState* is;
     input_filename = file; 
     logger.init();
+    //set the states
+    show_mode = SHOW_MODE_RDFT;
     /* register all codecs, demux and protocols */
 #if CONFIG_AVDEVICE
     avdevice_register_all();
@@ -663,6 +670,9 @@ int Ffplay::read_thread(void* arg)
     if (show_status)
         dump.dump_format(ic, 0, is->filename, 0);
     //set the duration in the main window
+    song_duration = ic->duration;
+    //menu_ptr->show(ic->duration);
+    OutputDebugString(L"duration set");
     set_duration_in_main_window(ic->duration);
 
     for (i = 0; i < ic->nb_streams; i++) {
@@ -1266,16 +1276,15 @@ int64_t Ffplay::frame_queue_last_pos(FrameQueue* f)
 
 void Ffplay::do_exit(VideoState* is)
 {
+    abort = true;
     if(is)
     {
         stream_close(is);
     }
-
     if (renderer)
         SDL_DestroyRenderer(renderer);
     if (window)
         SDL_DestroyWindow(window);
-    //uninit_opts();
 #if CONFIG_AVFILTER
     av_freep(&vfilters_list);
 #endif
@@ -1284,7 +1293,6 @@ void Ffplay::do_exit(VideoState* is)
         printf("\n");
     SDL_Quit();
     logger.log(logger.LEVEL_INFO, "%s", "");
-    return;
 }
 void Ffplay::toggle_full_screen(VideoState* is)
 {
@@ -1900,15 +1908,16 @@ int Ffplay::audio_open(void* opaque, int64_t wanted_channel_layout, int wanted_n
 }
 void Ffplay::static_sdl_audio_callback(void* opaque, Uint8* stream, int len)
 {
-    ((Ffplay*)opaque)->sdl_audio_callback(opaque, stream, len);
+    static_cast<Ffplay*>(opaque)->sdl_audio_callback(opaque, stream, len);
 }
 /* prepare a new audio buffer */
 void Ffplay::sdl_audio_callback(void* opaque, Uint8* stream, int len)
 {
     VideoState* is = static_cast<VideoState*>( opaque);
     int audio_size, len1;
-    
-    audio_callback_time = av_gettime_relative();
+    if (abort)
+        return;
+    audio_callback_time = av_gettime_relative();    
 
     while (len > 0) {
         if (is->audio_buf_index >= is->audio_buf_size) {
@@ -2272,7 +2281,7 @@ void Ffplay::video_refresh(void* opaque, double* remaining_time)
                 av_diff = get_master_clock(is) - get_clock(&is->vidclk);
             else if (is->audio_st)
                 av_diff = get_master_clock(is) - get_clock(&is->audclk);
-            logger.log(logger.LEVEL_INFO,
+            /*logger.log(logger.LEVEL_INFO,
                 "%7.2f %s:%7.3f fd=%4d aq=%5dKB vq=%5dKB sq=%5dB f=%f /%f\r",
                 get_master_clock(is),
                 (is->audio_st && is->video_st) ? "A-V" : (is->video_st ? "M-V" : (is->audio_st ? "M-A" : "   ")),
@@ -2282,7 +2291,7 @@ void Ffplay::video_refresh(void* opaque, double* remaining_time)
                 vqsize / 1024,
                 sqsize,
                 is->video_st ? is->viddec.avctx->pts_correction_num_faulty_dts : 0,
-                is->video_st ? is->viddec.avctx->pts_correction_num_faulty_pts : 0);
+                is->video_st ? is->viddec.avctx->pts_correction_num_faulty_pts : 0);*/
             fflush(stdout);
             last_time = cur_time;
         }
@@ -3088,6 +3097,10 @@ int Ffplay::opt_format(const char* arg)
         return AVERROR(EINVAL);
     }
     return 0;
+}
+int64_t Ffplay::get_song_duration()
+{
+    return song_duration;
 }
 /*
 set the duration in main window*/

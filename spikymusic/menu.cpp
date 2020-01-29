@@ -435,20 +435,34 @@ void Menu::mainButtonClicked(int id,HWND h_clicked)
 		{
 			FileExplorer file_explorer;
 			songs_to_play = file_explorer.find_songs_to_play(GetParent(h_clicked));
-			//first we load the songs data
-			for (int c = 0; c < songs_to_play.size(); c++)
-			{
-				std::string input{ songs_to_play.at(c).begin(),songs_to_play.at(c).end() };
-				if (songs_to_play.size() == 1)
-				{
-					Ffplay ffplay;
-					std::thread th( &Ffplay::play_song, ffplay, input,h_sdl_window, &song_opened); 
-					//swap the local thread variable with global one so that the song can proceed playing
-					//when this function is out of scope
-					th.swap(thread_song);
-					OutputDebugString(L"contimuing");
-				}
 
+			if (songs_to_play.size() == 1)
+			{
+				string input{ songs_to_play.at(0).begin(),songs_to_play.at(0).end() };
+				Ffplay ffplay;
+				std::thread th(&Ffplay::play_song, ffplay, input, h_sdl_window, &song_opened);
+				//swap the local thread variable with global one so that the song can proceed playing
+				//when this function is out of scope
+				th.swap(thread_song);
+				song_playing = SongPlaying::SONG_PLAY_PLAYING;
+				current_song = 0;
+				wchar_t dur[26];
+				wsprintf(dur, L"\n\n\nsong duration %d\n\n\n", ffplay.get_song_duration());
+				OutputDebugString(dur);
+			}
+			else
+			{
+				wstring directory = songs_to_play.at(0);
+				wstring song_path=directory + L"\\" + songs_to_play.at(1);
+				string s_song_path{ song_path.begin(),song_path.end() };
+				Ffplay ffplay;
+				std::thread th(&Ffplay::play_song, ffplay, s_song_path, h_sdl_window, &song_opened);
+				//swap the local thread variable with global one so that the song can proceed playing
+				//when this function is out of scope
+				th.swap(thread_song);
+				song_playing = SongPlaying::SONG_PLAY_PLAYING;
+				current_song = 1;
+				
 			}
 		}
 		else if(song_opened)
@@ -474,9 +488,22 @@ void Menu::mainButtonClicked(int id,HWND h_clicked)
 	}
 	else if (id = i_next_btn_id)
 	{
-		if (songs_to_play.size() > 1)
+		if (songs_to_play.size() > current_song + 1)
 		{
-
+			//first lets quit the current song
+			send_sdl_music_event(SdlMusicOptions::SDL_SONG_QUIT);
+			song_playing = SongPlaying::SONG_PLAY_EMPTY;
+			//now lets play the next song
+			wstring directory = songs_to_play.at(0);
+			wstring song_path = directory + L"\\"+ songs_to_play.at(current_song + 1);
+			string s_song_path{ song_path.begin(),song_path.end() };
+			Ffplay ffplay;
+			//std::thread th(&Ffplay::play_song, ffplay, s_song_path, h_sdl_window, &song_opened);
+			//swap the local thread variable with global one so that the song can proceed playing
+			//when this function is out of scope
+			//th.swap(thread_song);
+			//song_playing = SongPlaying::SONG_PLAY_PLAYING;
+			//current_song += 1;
 		}
 	}
 }
@@ -537,6 +564,12 @@ void Menu::exit()
 		send_sdl_music_event(SdlMusicOptions::SDL_SONG_QUIT);
 	}
 	GdiplusShutdown(gdiplusToken);
+}
+void Menu::show(int64_t duration)
+{
+	wchar_t dur[26];
+	wsprintf(dur, L"\n\n\nsong duration %d\n\n\n", duration);
+	OutputDebugString(dur);
 }
 void Menu::displayLastErrorDebug(LPTSTR lpSzFunction)
 {
