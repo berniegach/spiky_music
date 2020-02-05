@@ -223,6 +223,9 @@
     <Image Include="..\res\sort_by_ratings_w_pressed.bmp" />
     <Image Include="..\res\sort_by_similarity_w_normal.bmp" />
     <Image Include="..\res\sort_by_similarity_w_pressed.bmp" />
+    <Image Include="..\res\stop_w_disabled.bmp" />
+    <Image Include="..\res\stop_w_normal.bmp" />
+    <Image Include="..\res\stop_w_pressed.bmp" />
     <Image Include="..\res\upload_w_normal.bmp" />
     <Image Include="..\res\upload_w_pressed.bmp" />
     <Image Include="Icon.ico" />

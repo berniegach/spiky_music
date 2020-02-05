@@ -5,6 +5,11 @@
 #include "spikymusic.h"
 #include "menu.h"
 #include <math.h>
+#include "logger.h"
+#define _CRTDBG_MAP_ALLOC
+#include <stdlib.h>
+#include <crtdbg.h>
+
 
 
 #define MAX_LOADSTRING 100
@@ -15,7 +20,7 @@ WCHAR szTitle[MAX_LOADSTRING];                  // The title bar text
 WCHAR szWindowClass[MAX_LOADSTRING];            // the main window class name
 Menu menu;
 int i_min_menu_id = 1;
-int i_max_menu_id = 20;
+int i_max_menu_id = 22;
 int i_current_window = 1;
 
 // Forward declarations of functions included in this code module:
@@ -29,7 +34,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,   _In_opt_ HINSTANCE hPrevInstan
     UNREFERENCED_PARAMETER(hPrevInstance);
     UNREFERENCED_PARAMETER(lpCmdLine);
 
-    // TODO: Place code here.
+    // initialize the logger
+	logger.init();
 
     // Initialize global strings
     LoadStringW(hInstance, IDS_APP_TITLE, szTitle, MAX_LOADSTRING);
@@ -55,7 +61,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,   _In_opt_ HINSTANCE hPrevInstan
             DispatchMessage(&msg);
         }
     }
-
+	//display memory leaks
+	_CrtDumpMemoryLeaks();
     return (int) msg.wParam;
 }
 

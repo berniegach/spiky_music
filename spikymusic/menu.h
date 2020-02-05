@@ -1,4 +1,5 @@
-#pragma once
+#ifndef MENU_H
+#define MENU_H
 #include <Windows.h>
 #include <CommCtrl.h>
 #include "resource.h"
@@ -6,10 +7,11 @@
 #include <strsafe.h>
 #include <ObjIdl.h>
 #include <gdiplus.h>
-#include "file_explorer.h"
 #include <SDL.h>
 #include "ffplay_variant.h"
 #include <thread>
+#include <future>
+#include "logger.h"
 using namespace Gdiplus;
 #pragma comment (lib,"Gdiplus.lib")
 #pragma comment(lib,"SDL2.lib")
@@ -30,18 +32,22 @@ public:
 	void paint(HDC* hdc,HWND* hwnd);
 	typedef enum class SdlMusicOptions { SDL_SONG_QUIT, SDL_SONG_PLAY, SDL_SONG_PAUSE } sdl_music_options;
 	int send_sdl_music_event(SdlMusicOptions options);
+	void play_song(wstring song_path);
 	void exit();
 	void show(int64_t duration);
+	void set_song_duration();
 	void displayLastErrorDebug(LPTSTR lpSzFunction);
 	~Menu();
 private:
 	GdiplusStartupInput gdiplusStartupInput;
 	ULONG_PTR gdiplusToken;
+	//Ffplay ffplay;
 	vector<wstring>songs_to_play;
 	typedef enum class SongPlaying { SONG_PLAY_EMPTY, SONG_PLAY_PLAYING, SONG_PLAY_PAUSED };
 	SongPlaying song_playing{ SongPlaying::SONG_PLAY_EMPTY };
 	bool song_opened{ false };
-	int current_song;
+	bool ready_to_play_song{ true };
+	int current_song = 0;
 	
 	//windows handles
 	HWND* h_parent;
@@ -66,6 +72,7 @@ private:
 	HWND h_fullscreen_btn{};
 	HWND h_repeat_btn{};
 	HWND h_shuffle_btn{};
+	HWND h_stop_btn{};
 	//center buttons 8-10
 	HWND h_previous_btn{};
 	HWND h_play_btn{};
@@ -100,7 +107,13 @@ private:
 	const int i_plat_time_txt_id[2]{ 18,19 };
 	const int i_favorites_add_large_btn_id{ 20 };
 	const int i_sdl_window_id = 21;
+	const int i_stop_btn_id = 22;
 
 	std::thread thread_song;
+	std::future<void> ft;
+	std::future<void> ft2;
+	//Ffplay ffplay;
+	//VideoState* video_state;
 };
+#endif
 

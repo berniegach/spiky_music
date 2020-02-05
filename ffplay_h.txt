@@ -311,9 +311,7 @@ class Ffplay
 public:
     Ffplay();
     void sdl_push_event();
-	void init(HWND parent);
-    void play_song(string file, HWND parent, bool* successfull);
-    void close_song(VideoState* video_state);
+    int play_song(string file, HWND parent, bool* successfull);
     void displayLastErrorDebug(LPTSTR lpSzFunction);
     VideoState* stream_open(const char* filename, AVInputFormat* iformat);
     int frame_queue_init(FrameQueue* f, PacketQueue* pktq, int max_size, int keep_last);
@@ -333,7 +331,7 @@ public:
     int packet_queue_put_nullpacket(PacketQueue* q, int stream_index);
     void packet_queue_abort(PacketQueue* q);
     void packet_queue_start(PacketQueue* q);
-    int packet_queue_get(const char*, PacketQueue* q, AVPacket* pkt, int block, int* serial);
+    int packet_queue_get(PacketQueue* q, AVPacket* pkt, int block, int* serial);
     void init_clock(Clock* c, int* queue_serial);
     void set_clock(Clock* c, double pts, int serial);
     void set_clock_at(Clock* c, double pts, int serial, double time);
@@ -370,7 +368,7 @@ public:
     void update_video_pts(VideoState* is, double pts, int64_t pos, int serial);
     void decoder_init(Decoder* d, AVCodecContext* avctx, PacketQueue* queue, SDL_cond* empty_queue_cond);
     int decoder_start(Decoder* d, int(*fn)(void*), const char* thread_name, void* arg);
-    int decoder_decode_frame(const char*, Decoder* d, AVFrame* frame, AVSubtitle* sub);
+    int decoder_decode_frame(Decoder* d, AVFrame* frame, AVSubtitle* sub);
     void decoder_abort(Decoder* d, FrameQueue* fq);
     void decoder_destroy(Decoder* d);
     void set_default_window_size(int width, int height, AVRational sar);
@@ -381,7 +379,7 @@ public:
     int stream_component_open(VideoState* is, int stream_index);
     int audio_open(void* opaque, int64_t wanted_channel_layout, int wanted_nb_channels, int wanted_sample_rate, AudioParams* audio_hw_params);
     static void static_sdl_audio_callback(void* opaque, Uint8* stream, int len);
-    static void sdl_audio_callback(void* opaque, Uint8* stream, int len);
+    void sdl_audio_callback(void* opaque, Uint8* stream, int len);
     int audio_decode_frame(VideoState* is);
     int synchronize_audio(VideoState* is, int nb_samples);
     void update_sample_display(VideoState* is, short* samples, int samples_size);
@@ -392,7 +390,7 @@ public:
     void video_image_display(VideoState* is);
     int get_video_frame(VideoState* is, AVFrame* frame);
     int queue_picture(VideoState* is, AVFrame* src_frame, double pts, double duration, int64_t pos, int serial);
-    inline void fill_rectangle(int x, int y, int w, int h);
+    void fill_rectangle(int x, int y, int w, int h);
     inline int compute_mod(int a, int b);
     AVDictionary* filter_codec_opts(AVDictionary* opts, AVCodecID codec_id, AVFormatContext* s, AVStream* st, AVCodec* codec);
     int check_stream_specifier(AVFormatContext* s, AVStream* st, const char* spec);
@@ -440,9 +438,9 @@ private:
     int screen_height = 0;
     int screen_left = SDL_WINDOWPOS_CENTERED;
     int screen_top = SDL_WINDOWPOS_CENTERED;
-    int audio_disable = false;
-    int video_disable = false;
-    int subtitle_disable = false;
+    int audio_disable;
+    int video_disable;
+    int subtitle_disable;
     const char* wanted_stream_spec[AVMEDIA_TYPE_NB] =
     { "v", // video
         "a", // audio 
@@ -499,7 +497,7 @@ private:
     SDL_Window* window;
     SDL_Renderer* renderer;
     SDL_RendererInfo renderer_info = { 0 };
-    static SDL_AudioDeviceID audio_dev;
+    SDL_AudioDeviceID audio_dev;
 
     const struct TextureFormatEntry
     {

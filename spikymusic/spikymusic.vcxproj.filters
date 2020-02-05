@@ -201,5 +201,14 @@
     <Image Include="..\res\pause_w_pressed.bmp">
       <Filter>Resource Files</Filter>
     </Image>
+    <Image Include="..\res\stop_w_disabled.bmp">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="..\res\stop_w_normal.bmp">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="..\res\stop_w_pressed.bmp">
+      <Filter>Resource Files</Filter>
+    </Image>
   </ItemGroup>
 </Project>

@@ -50,8 +50,11 @@
 #define IDB_FAVORITE_ADD_NORMAL_LARGE   164
 #define IDB_FAVORITE_ADD_PRESSED_LARGE  165
 #define IDB_PAUSE_W_NORMAL              166
-#define IDB_BITMAP2                     167
 #define IDB_PAUSE_W_PRESSED             167
+#define IDB_STOP_DISABLED               168
+#define IDB_STOP_NORMAL                 169
+#define IDB_BITMAP1                     170
+#define IDB_STOP_PRESSED                170
 #define ID_FILE_ADDFAVORITES            32771
 #define ID_FILE_CLEARFAVORITES          32772
 #define ID_FILE_PLAY                    32773
@@ -77,7 +80,7 @@
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NO_MFC                     1
-#define _APS_NEXT_RESOURCE_VALUE        168
+#define _APS_NEXT_RESOURCE_VALUE        171
 #define _APS_NEXT_COMMAND_VALUE         32789
 #define _APS_NEXT_CONTROL_VALUE         1000
 #define _APS_NEXT_SYMED_VALUE           110

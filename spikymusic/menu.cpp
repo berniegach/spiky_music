@@ -1,5 +1,7 @@
+#include "file_explorer.h"
 #include "menu.h"
-#include <future>
+
+
 
 Menu::Menu()
 {
@@ -51,12 +53,17 @@ void Menu::createMainButtons()
 	{
 		*hwnds[c] = CreateWindow(WC_BUTTON, TEXT(""), WS_CHILD | WS_VISIBLE | BS_OWNERDRAW, i_x, i_y, i_btn_width, i_btn_height, *h_parent, (HMENU)ids[c], *hinst, NULL);
 		i_x += i_btn_width + i_distance_between;
-		if (*hwnds[c] == NULL)
-			displayLastErrorDebug((LPTSTR)L"NULL");
 	}
 	//create the center buttons
 	long l_x_center = rect.right / 2;
 	i_x = l_x_center - (i_btn_width + i_distance_between + (i_btn_width / 2));
+	//lets take advantage that we have the center to create the stop button which is left of the center buttons
+	//the stop button starts as disbaled since we dont have a song playing
+	long i_x_stop = i_x - (i_btn_width + i_distance_between );
+	h_stop_btn = CreateWindow(WC_BUTTON, TEXT("g"), WS_CHILD | WS_VISIBLE | BS_OWNERDRAW, i_x_stop, i_y, i_btn_width, i_btn_height, *h_parent, (HMENU)i_stop_btn_id, *hinst, NULL);
+	EnableWindow(h_stop_btn, false);
+	//create the three center buttons
+	//previous, play, and next
 	for (int c = 8; c <= 10; c++)
 	{
 		*hwnds[c] = CreateWindow(WC_BUTTON, TEXT(""), WS_CHILD | WS_VISIBLE | BS_OWNERDRAW, i_x, i_y, i_btn_width, i_btn_height, *h_parent, (HMENU)ids[c], *hinst, NULL);
@@ -95,6 +102,7 @@ void Menu::createMainButtons()
 	//make it invisible
 	h_sdl_window = CreateWindow(WC_STATIC, TEXT(""), WS_CHILD | WS_VISIBLE, 0, 0, rect.right, i_y, *h_parent, (HMENU)i_sdl_window_id, *hinst, NULL);
 	ShowWindow(h_sdl_window, false);
+	//ffplay.init(h_sdl_window);
 	//check if the user has favorites added. if not show this button
 	int i_big_fav_add_w = 100;
 	i_x = rect.right / 2 - i_big_fav_add_w / 2;
@@ -186,6 +194,11 @@ void Menu::drawButtons(LPDRAWITEMSTRUCT pdis)
 		case 20:
 			hBitmap= LoadBitmap(*hinst, MAKEINTRESOURCE(IDB_FAVORITE_ADD_NORMAL_LARGE));
 			break;
+		case 22:
+			song_playing == SongPlaying::SONG_PLAY_EMPTY ?
+				hBitmap = LoadBitmap(*hinst, MAKEINTRESOURCE(IDB_STOP_DISABLED)) :
+				hBitmap = LoadBitmap(*hinst, MAKEINTRESOURCE(IDB_STOP_NORMAL));
+			break;
 		default:
 			hBitmap = LoadBitmap(*hinst, MAKEINTRESOURCE(IDB_COMMENT_NORMAL));
 
@@ -254,6 +267,9 @@ void Menu::drawButtons(LPDRAWITEMSTRUCT pdis)
 			case 20:
 				hBitmap = LoadBitmap(*hinst, MAKEINTRESOURCE(IDB_FAVORITE_ADD_PRESSED_LARGE));
 				break;
+			case 22:
+				hBitmap = LoadBitmap(*hinst, MAKEINTRESOURCE(IDB_STOP_PRESSED));
+				break;
 			default:
 				hBitmap = LoadBitmap(*hinst, MAKEINTRESOURCE(IDB_COMMENT_PRESSED));
 
@@ -299,10 +315,11 @@ void Menu::windowSizeChanged(HWND* hwnd)
 	int i_btn_width = 30, i_btn_height = 30;
 	int i_distance_between = 10;
 	int i_total_left_btns_width = (8 * i_distance_between) + (8 * i_btn_width);
-	int i_total_center_btns_width = (3 * i_distance_between) + (3 * i_btn_width);
+	int i_total_center_btns_width = (4 * i_distance_between) + (4 * i_btn_width);
 	int i_total_right_btns_width = (3 * i_distance_between) + (3 * i_btn_width);
 	int i_x = 0, i_y = rect.bottom - 35;
 	//check if we can fit all of them
+	//if not hide the leftmost buttons
 	if (rect.right >= (i_total_left_btns_width + i_total_center_btns_width + i_total_right_btns_width) || rect.right >= (i_total_left_btns_width + i_total_center_btns_width))
 	{
 		//move the leftmost buttons
@@ -332,11 +349,18 @@ void Menu::windowSizeChanged(HWND* hwnd)
 				MoveWindow(*hwnds[c], i_x, i_y, i_btn_width, i_btn_height, true);
 				i_x -= i_btn_width + i_distance_between;
 			}
+			//move the stop button
+			if (!IsWindowVisible(h_stop_btn))
+				ShowWindow(h_stop_btn, true);
+			MoveWindow(h_stop_btn, i_x, i_y, i_btn_width, i_btn_height, true);
 		}
 		else
 		{
 			long l_x_center = rect.right / 2;
 			i_x = l_x_center - (i_btn_width + i_distance_between + (i_btn_width / 2));
+			long i_x_stop = i_x - (i_btn_width + i_distance_between);
+			//move the stop button
+			MoveWindow(h_stop_btn, i_x_stop, i_y, i_btn_width, i_btn_height, true);
 			for (int c = 8; c <= 10; c++)
 			{
 				MoveWindow(*hwnds[c], i_x, i_y, i_btn_width, i_btn_height, true);
@@ -346,8 +370,12 @@ void Menu::windowSizeChanged(HWND* hwnd)
 		
 	}
 	else
+	{
+		//we cant fit the center buttons so we hide them
 		for (int c = 8; c <= 10; c++)
 			ShowWindow(*hwnds[c], false);
+		ShowWindow(h_stop_btn, false);
+	}
 	if (rect.right >= (i_total_left_btns_width + i_total_center_btns_width + i_total_right_btns_width))
 	{
 		//move the rightmost buttons
@@ -401,7 +429,6 @@ void Menu::mainButtonClicked(int id,HWND h_clicked)
 	using std::future;
 	using std::async;
 	using std::launch;
-
 	i_which_main_btn_pressed = id;
 
 	if (id == i_repeat_btn_id)
@@ -434,35 +461,24 @@ void Menu::mainButtonClicked(int id,HWND h_clicked)
 		if ( song_playing==SongPlaying::SONG_PLAY_EMPTY && !song_opened)
 		{
 			FileExplorer file_explorer;
-			songs_to_play = file_explorer.find_songs_to_play(GetParent(h_clicked));
+			//make sure file_explorer is not cancelled
+			if ((songs_to_play = file_explorer.find_songs_to_play(GetParent(h_clicked))).empty())
+				return;
 
 			if (songs_to_play.size() == 1)
 			{
-				string input{ songs_to_play.at(0).begin(),songs_to_play.at(0).end() };
-				Ffplay ffplay;
-				std::thread th(&Ffplay::play_song, ffplay, input, h_sdl_window, &song_opened);
-				//swap the local thread variable with global one so that the song can proceed playing
-				//when this function is out of scope
-				th.swap(thread_song);
+				ft=std::async(launch::async, &Menu::play_song, this, songs_to_play.at(0));
 				song_playing = SongPlaying::SONG_PLAY_PLAYING;
-				current_song = 0;
-				wchar_t dur[26];
-				wsprintf(dur, L"\n\n\nsong duration %d\n\n\n", ffplay.get_song_duration());
-				OutputDebugString(dur);
+				EnableWindow(h_stop_btn,true);
 			}
 			else
 			{
 				wstring directory = songs_to_play.at(0);
-				wstring song_path=directory + L"\\" + songs_to_play.at(1);
-				string s_song_path{ song_path.begin(),song_path.end() };
-				Ffplay ffplay;
-				std::thread th(&Ffplay::play_song, ffplay, s_song_path, h_sdl_window, &song_opened);
-				//swap the local thread variable with global one so that the song can proceed playing
-				//when this function is out of scope
-				th.swap(thread_song);
-				song_playing = SongPlaying::SONG_PLAY_PLAYING;
-				current_song = 1;
-				
+				wstring song_path=directory + L"\\" + songs_to_play.at(++current_song);
+				ft = std::async(launch::async, &Menu::play_song, this, song_path);
+				song_playing = SongPlaying::SONG_PLAY_PLAYING;	
+				EnableWindow(h_stop_btn, true);
+
 			}
 		}
 		else if(song_opened)
@@ -493,18 +509,22 @@ void Menu::mainButtonClicked(int id,HWND h_clicked)
 			//first lets quit the current song
 			send_sdl_music_event(SdlMusicOptions::SDL_SONG_QUIT);
 			song_playing = SongPlaying::SONG_PLAY_EMPTY;
+			
 			//now lets play the next song
 			wstring directory = songs_to_play.at(0);
-			wstring song_path = directory + L"\\"+ songs_to_play.at(current_song + 1);
-			string s_song_path{ song_path.begin(),song_path.end() };
-			Ffplay ffplay;
-			//std::thread th(&Ffplay::play_song, ffplay, s_song_path, h_sdl_window, &song_opened);
-			//swap the local thread variable with global one so that the song can proceed playing
-			//when this function is out of scope
-			//th.swap(thread_song);
-			//song_playing = SongPlaying::SONG_PLAY_PLAYING;
-			//current_song += 1;
+			wstring song_path = directory + L"\\" + songs_to_play.at(++current_song);
+			ft = std::async(launch::async, &Menu::play_song, this, song_path);
 		}
+	}
+	else if (id == i_stop_btn_id)
+	{
+		songs_to_play.clear();
+		send_sdl_music_event(SdlMusicOptions::SDL_SONG_QUIT);
+		song_playing = SongPlaying::SONG_PLAY_EMPTY;
+		InvalidateRect(h_clicked, NULL, true);
+		UpdateWindow(h_clicked);
+		SetFocus(NULL);
+		EnableWindow(h_stop_btn, false);
 	}
 }
 
@@ -552,6 +572,20 @@ int Menu::send_sdl_music_event(SdlMusicOptions options)
 	}
 	return i_return;
 }
+void Menu::play_song(wstring song_path)
+{
+	ready_to_play_song = false;
+	using std::future;
+	using std::async;
+	using std::launch;
+	
+
+	string input{ song_path.begin(),song_path.end() };
+	Ffplay ffplay;
+	ffplay.play_song(input, h_sdl_window, &song_opened);
+
+	ready_to_play_song = true;
+}
 /*
 we place exit functions here because when we close the main window the destructor is not called properly
 so we instead call this function to close
@@ -568,8 +602,12 @@ void Menu::exit()
 void Menu::show(int64_t duration)
 {
 	wchar_t dur[26];
-	wsprintf(dur, L"\n\n\nsong duration %d\n\n\n", duration);
+	SetWindowTextW(h_play_time_txt[0], L"one");
+	wsprintf(dur, L"\n\n\n show song duration " PRId64"\n\n\n", duration);
 	OutputDebugString(dur);
+}
+void Menu::set_song_duration()
+{
 }
 void Menu::displayLastErrorDebug(LPTSTR lpSzFunction)
 {

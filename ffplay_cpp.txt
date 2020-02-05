@@ -4,7 +4,6 @@
 //and in so doing we wont proceed with the function sdl_audio_callback which for some reason
 //causes an access write violation while writing audio_callback_time
 bool Ffplay::abort = false;
-SDL_AudioDeviceID Ffplay::audio_dev;
 //int64_t Ffplay::song_duration = 0;
 Ffplay::Ffplay()
 {
@@ -18,88 +17,11 @@ void Ffplay::sdl_push_event()
 
     SDL_PushEvent(&sdlevent);
 }
-void Ffplay::init(HWND parent)
-{
-    int flags;
-    /* register all codecs, demux and protocols */
-#if CONFIG_AVDEVICE
-    avdevice_register_all();
-#endif
-    //avformat_network_init();
-
-    if (display_disable)
-    {
-        video_disable = 1;
-    }
-    flags = SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_TIMER;
-    if (audio_disable)
-        flags &= ~SDL_INIT_AUDIO;
-    else
-    {
-        /* Try to work around an occasional ALSA buffer underflow issue when the
-         * period size is NPOT due to ALSA resampling by forcing the buffer size. */
-        if (!SDL_getenv("SDL_AUDIO_ALSA_SET_BUFFER_SIZE"))
-            SDL_setenv("SDL_AUDIO_ALSA_SET_BUFFER_SIZE", "1", 1);
-    }
-    if (display_disable)
-        flags &= ~SDL_INIT_VIDEO;
-    SDL_SetMainReady();
-    if (SDL_Init(flags))
-    {
-        logger.log(logger.LEVEL_ERROR, "Could not initialize SDL - %s\n", SDL_GetError());
-        logger.log(logger.LEVEL_ERROR, "(Did you set the DISPLAY variable?)\n");
-        return;
-    }
-    //Initialize optional fields of a packet with default values.
-    //Note, this does not touch the data and size members, which have to be initialized separately.
-    av_init_packet(&flush_pkt);
-    flush_pkt.data = (uint8_t*)&flush_pkt;
-
-    if (!display_disable)
-    {
-        int flags = SDL_WINDOW_HIDDEN;
-        if (alwaysontop)
-#if SDL_VERSION_ATLEAST(2,0,5)
-            flags |= SDL_WINDOW_ALWAYS_ON_TOP;
-#else
-            logger.log(logger.LEVEL_INFO, "SDL version doesn't support SDL_WINDOW_ALWAYS_ON_TOP. Feature will be inactive.\n");
-#endif
-        if (borderless)
-            flags |= SDL_WINDOW_BORDERLESS;
-        else
-            flags |= SDL_WINDOW_RESIZABLE;
-        SDL_InitSubSystem(flags);
-        ShowWindow(parent, true);
-        //window = SDL_CreateWindow(program_name, SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, default_width, default_height, flags);
-        window = SDL_CreateWindowFrom(parent);
-        SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "linear");
-        if (window) {
-            renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
-            if (!renderer)
-            {
-                logger.log(logger.LEVEL_ERROR, "Failed to initialize a hardware accelerated renderer: %s\n", SDL_GetError());
-                renderer = SDL_CreateRenderer(window, -1, 0);
-            }
-            if (renderer)
-            {
-                if (!SDL_GetRendererInfo(renderer, &renderer_info))
-                {
-                    logger.log(logger.LEVEL_INFO, "Initialized %s renderer.\n", renderer_info.name);
-                }
-            }
-        }
-        if (!window || !renderer || !renderer_info.num_texture_formats)
-        {
-            logger.log(logger.LEVEL_ERROR, "Failed to create window or renderer: %s\n", SDL_GetError());
-            return;
-        }
-    }
-}
-void Ffplay::play_song(string file, HWND parent, bool* successfull)
+int Ffplay::play_song(string file, HWND parent, bool* successfull)
 {
     int flags;
     VideoState* is;
-    input_filename = file;
+    input_filename = file; 
     /* register all codecs, demux and protocols */
 #if CONFIG_AVDEVICE
     avdevice_register_all();
@@ -109,7 +31,7 @@ void Ffplay::play_song(string file, HWND parent, bool* successfull)
     if (input_filename.empty())
     {
         logger.log(logger.LEVEL_ERROR, "filename %s is not valid\n", file);
-        return ;
+        return 0;
     }
     if (display_disable)
     {
@@ -132,7 +54,7 @@ void Ffplay::play_song(string file, HWND parent, bool* successfull)
     {
         logger.log(logger.LEVEL_ERROR, "Could not initialize SDL - %s\n", SDL_GetError());
         logger.log(logger.LEVEL_ERROR, "(Did you set the DISPLAY variable?)\n");
-        return ;
+        return 0;
     }
     //Initialize optional fields of a packet with default values.
     //Note, this does not touch the data and size members, which have to be initialized separately.
@@ -175,7 +97,7 @@ void Ffplay::play_song(string file, HWND parent, bool* successfull)
         if (!window || !renderer || !renderer_info.num_texture_formats)
         {
             logger.log(logger.LEVEL_ERROR, "Failed to create window or renderer: %s\n", SDL_GetError());
-            return ;
+            return 0;
         }
     }
 
@@ -183,20 +105,14 @@ void Ffplay::play_song(string file, HWND parent, bool* successfull)
     if (!is)
     {
         logger.log(logger.LEVEL_ERROR, "Failed to initialize VideoState!\n");
-        return ;
+        return 0;
     }
     //the song is playing now
     *successfull = true;
     event_loop(is);
     //the song has quit;
     *successfull = false;
-}
-void Ffplay::close_song(VideoState* video_state)
-{
-    if (video_state)
-    {
-        stream_close(video_state);
-    }
+    return 10;
 }
 void Ffplay::displayLastErrorDebug(LPTSTR lpSzFunction)
 {
@@ -269,7 +185,7 @@ VideoState* Ffplay::stream_open(const char* filename, AVInputFormat* iformat)
     }
     return is;
 }
-/* create sdl mutex and conditional variable for the packet queue */
+/* packet queue handling */
 int Ffplay::packet_queue_init(PacketQueue* q)
 {
     memset(q, 0, sizeof(PacketQueue));
@@ -297,8 +213,7 @@ void Ffplay::packet_queue_flush(PacketQueue* q)
     MyAVPacketList* pkt, * pkt1;
 
     SDL_LockMutex(q->mutex);
-    for (pkt = q->first_pkt; pkt; pkt = pkt1)
-    {
+    for (pkt = q->first_pkt; pkt; pkt = pkt1) {
         pkt1 = pkt->next;
         av_packet_unref(&pkt->pkt);
         av_freep(&pkt);
@@ -381,32 +296,25 @@ void Ffplay::packet_queue_start(PacketQueue* q)
 {
     SDL_LockMutex(q->mutex);
     q->abort_request = 0;
-    if (packet_queue_put_private(q, &flush_pkt) < 0)
-        logger.log(logger.LEVEL_ERROR, "f::packet queue but private");
+    packet_queue_put_private(q, &flush_pkt);
     SDL_UnlockMutex(q->mutex);
 }
 /* return < 0 if aborted, 0 if no packet and > 0 if packet.  */
-int Ffplay::packet_queue_get(const char* who, PacketQueue* q, AVPacket* pkt, int block, int* serial)
+int Ffplay::packet_queue_get(PacketQueue* q, AVPacket* pkt, int block, int* serial)
 {
-
     MyAVPacketList* pkt1;
     int ret;
-    int count=0;
+
     SDL_LockMutex(q->mutex);
 
-    for (;;) 
-    {
-        
-
-        if (q->abort_request)
-        {
+    for (;;) {
+        if (q->abort_request) {
             ret = -1;
             break;
         }
 
         pkt1 = q->first_pkt;
-        if (pkt1)
-        {
+        if (pkt1) {
             q->first_pkt = pkt1->next;
             if (!q->first_pkt)
                 q->last_pkt = NULL;
@@ -424,12 +332,8 @@ int Ffplay::packet_queue_get(const char* who, PacketQueue* q, AVPacket* pkt, int
             ret = 0;
             break;
         }
-        else 
-        {
-            logger.log(logger.LEVEL_INFO, "packet_queue before %s", who);
+        else {
             SDL_CondWait(q->cond, q->mutex);
-            logger.log(logger.LEVEL_INFO, "packet_queue after %s", who);
-
         }
     }
     SDL_UnlockMutex(q->mutex);
@@ -561,7 +465,7 @@ void Ffplay::stream_close(VideoState* is)
     if (is->video_stream >= 0)
         stream_component_close(is, is->video_stream);
     if (is->subtitle_stream >= 0)
-        stream_component_close(is, is->subtitle_stream); 
+        stream_component_close(is, is->subtitle_stream);
 
     avformat_close_input(&is->ic);
 
@@ -594,8 +498,7 @@ void Ffplay::stream_component_close(VideoState* is, int stream_index)
         return;
     codecpar = ic->streams[stream_index]->codecpar;
 
-    switch (codecpar->codec_type)
-    {
+    switch (codecpar->codec_type) {
     case AVMEDIA_TYPE_AUDIO:
         decoder_abort(&is->auddec, &is->sampq);
         SDL_CloseAudioDevice(audio_dev);
@@ -625,8 +528,7 @@ void Ffplay::stream_component_close(VideoState* is, int stream_index)
     }
 
     ic->streams[stream_index]->discard = AVDISCARD_ALL;
-    switch (codecpar->codec_type)
-    {
+    switch (codecpar->codec_type) {
     case AVMEDIA_TYPE_AUDIO:
         is->audio_st = NULL;
         is->audio_stream = -1;
@@ -661,7 +563,6 @@ int Ffplay::read_thread(void* arg)
     SDL_mutex* wait_mutex = SDL_CreateMutex();
     int scan_all_pmts_set = 0;
     int64_t pkt_ts;
-
     //we will use local variable ot type string because the global one 
     // of type const char* fails in this function called from static context
     string wanted_stream_spec[]{ "v","a","s","d","t" };
@@ -723,7 +624,8 @@ int Ffplay::read_thread(void* arg)
         av_freep(&opts);
 
         if (err < 0) {
-            logger.log(logger.LEVEL_WARNING,  "%s: could not find codec parameters\n", is->filename);
+            logger.log(logger.LEVEL_WARNING,
+                "%s: could not find codec parameters\n", is->filename);
             ret = -1;
             goto fail;
         }
@@ -736,7 +638,7 @@ int Ffplay::read_thread(void* arg)
         seek_by_bytes = !!(ic->iformat->flags & AVFMT_TS_DISCONT) && strcmp("ogg", ic->iformat->name);
 
     is->max_frame_duration = (ic->iformat->flags & AVFMT_TS_DISCONT) ? 10.0 : 3600.0;
-    //if the window title is not specified, get the title from the metadata and display it
+
     if (!window_title && (t = av_dict_get(ic->metadata, "title", NULL, 0)))
     {
         char title[256];
@@ -754,7 +656,8 @@ int Ffplay::read_thread(void* arg)
             timestamp += ic->start_time;
         ret = avformat_seek_file(ic, -1, INT64_MIN, timestamp, INT64_MAX, 0);
         if (ret < 0) {
-            logger.log(logger.LEVEL_WARNING, "%s: could not seek to position %0.3f\n",  is->filename, (double)timestamp / AV_TIME_BASE);
+            logger.log(logger.LEVEL_WARNING, "%s: could not seek to position %0.3f\n",
+                is->filename, (double)timestamp / AV_TIME_BASE);
         }
     }
 
@@ -766,8 +669,7 @@ int Ffplay::read_thread(void* arg)
     song_duration = ic->duration; 
     song_duration_set = true;
 
-    for (i = 0; i < ic->nb_streams; i++)
-    {
+    for (i = 0; i < ic->nb_streams; i++) {
         AVStream* st = ic->streams[i];
         enum AVMediaType type = st->codecpar->codec_type;
         st->discard = AVDISCARD_ALL;
@@ -785,14 +687,25 @@ int Ffplay::read_thread(void* arg)
             st_index[i] = INT_MAX;
         }
     }
+
     if (!video_disable)
-        st_index[AVMEDIA_TYPE_VIDEO] =  av_find_best_stream(ic, AVMEDIA_TYPE_VIDEO,     st_index[AVMEDIA_TYPE_VIDEO], -1, NULL, 0);
+        st_index[AVMEDIA_TYPE_VIDEO] =
+        av_find_best_stream(ic, AVMEDIA_TYPE_VIDEO,
+            st_index[AVMEDIA_TYPE_VIDEO], -1, NULL, 0);
     if (!audio_disable)
-        st_index[AVMEDIA_TYPE_AUDIO] =  av_find_best_stream(ic, AVMEDIA_TYPE_AUDIO,   st_index[AVMEDIA_TYPE_AUDIO],  st_index[AVMEDIA_TYPE_VIDEO],   NULL, 0);
-   
+        st_index[AVMEDIA_TYPE_AUDIO] =
+        av_find_best_stream(ic, AVMEDIA_TYPE_AUDIO,
+            st_index[AVMEDIA_TYPE_AUDIO],
+            st_index[AVMEDIA_TYPE_VIDEO],
+            NULL, 0);
     if (!video_disable && !subtitle_disable)
-        st_index[AVMEDIA_TYPE_SUBTITLE] = av_find_best_stream(ic, AVMEDIA_TYPE_SUBTITLE, st_index[AVMEDIA_TYPE_SUBTITLE],
-        (st_index[AVMEDIA_TYPE_AUDIO] >= 0 ?   st_index[AVMEDIA_TYPE_AUDIO] :   st_index[AVMEDIA_TYPE_VIDEO]),            NULL, 0);
+        st_index[AVMEDIA_TYPE_SUBTITLE] =
+        av_find_best_stream(ic, AVMEDIA_TYPE_SUBTITLE,
+            st_index[AVMEDIA_TYPE_SUBTITLE],
+            (st_index[AVMEDIA_TYPE_AUDIO] >= 0 ?
+                st_index[AVMEDIA_TYPE_AUDIO] :
+                st_index[AVMEDIA_TYPE_VIDEO]),
+            NULL, 0);
 
     is->show_mode = (VideoState::ShowMode)show_mode;
     if (st_index[AVMEDIA_TYPE_VIDEO] >= 0) {
@@ -804,26 +717,22 @@ int Ffplay::read_thread(void* arg)
     }
 
     /* open the streams */
-    if (st_index[AVMEDIA_TYPE_AUDIO] >= 0)
-    {
-        ret = stream_component_open(is, st_index[AVMEDIA_TYPE_AUDIO]);
+    if (st_index[AVMEDIA_TYPE_AUDIO] >= 0) {
+        stream_component_open(is, st_index[AVMEDIA_TYPE_AUDIO]);
     }
 
     ret = -1;
     if (st_index[AVMEDIA_TYPE_VIDEO] >= 0) {
         ret = stream_component_open(is, st_index[AVMEDIA_TYPE_VIDEO]);
     }
-    //if we havent set the show mode and there is not video stream, show the fourier transform
     if (is->show_mode == SHOW_MODE_NONE)
         is->show_mode = (VideoState::ShowMode)(ret >= 0 ? SHOW_MODE_VIDEO : SHOW_MODE_RDFT);
 
-    if (st_index[AVMEDIA_TYPE_SUBTITLE] >= 0) 
-    {
+    if (st_index[AVMEDIA_TYPE_SUBTITLE] >= 0) {
         stream_component_open(is, st_index[AVMEDIA_TYPE_SUBTITLE]);
     }
-    
-    if (is->video_stream < 0 && is->audio_stream < 0)
-    {
+
+    if (is->video_stream < 0 && is->audio_stream < 0) {
         logger.log(logger.LEVEL_FATAL, "Failed to open file '%s' or configure filtergraph\n",
             is->filename);
         ret = -1;
@@ -833,12 +742,10 @@ int Ffplay::read_thread(void* arg)
     if (infinite_buffer < 0 && is->realtime)
         infinite_buffer = 1;
 
-    for (;;) 
-    {
+    for (;;) {
         if (is->abort_request)
             break;
-        if (is->paused != is->last_paused) 
-        {
+        if (is->paused != is->last_paused) {
             is->last_paused = is->paused;
             if (is->paused)
                 is->read_pause_return = av_read_pause(ic);
@@ -855,8 +762,7 @@ int Ffplay::read_thread(void* arg)
             continue;
         }
 #endif
-        if (is->seek_req)
-        {
+        if (is->seek_req) {
             int64_t seek_target = is->seek_pos;
             int64_t seek_min = is->seek_rel > 0 ? seek_target - is->seek_rel + 2 : INT64_MIN;
             int64_t seek_max = is->seek_rel < 0 ? seek_target - is->seek_rel - 2 : INT64_MAX;
@@ -865,7 +771,8 @@ int Ffplay::read_thread(void* arg)
 
             ret = avformat_seek_file(is->ic, -1, seek_min, seek_target, seek_max, is->seek_flags);
             if (ret < 0) {
-                logger.log(logger.LEVEL_ERROR,    "%s: error while seeking\n", is->ic->url);
+                logger.log(logger.LEVEL_ERROR,
+                    "%s: error while seeking\n", is->ic->url);
             }
             else {
                 if (is->audio_stream >= 0) {
@@ -909,8 +816,7 @@ int Ffplay::read_thread(void* arg)
             (is->audioq.size + is->videoq.size + is->subtitleq.size > MAX_QUEUE_SIZE
                 || (stream_has_enough_packets(is->audio_st, is->audio_stream, &is->audioq) &&
                     stream_has_enough_packets(is->video_st, is->video_stream, &is->videoq) &&
-                    stream_has_enough_packets(is->subtitle_st, is->subtitle_stream, &is->subtitleq))))
-        {
+                    stream_has_enough_packets(is->subtitle_st, is->subtitle_stream, &is->subtitleq)))) {
             /* wait 10 ms */
             SDL_LockMutex(wait_mutex);
             SDL_CondWaitTimeout(is->continue_read_thread, wait_mutex, 10);
@@ -920,21 +826,17 @@ int Ffplay::read_thread(void* arg)
         if (!is->paused &&
             (!is->audio_st || (is->auddec.finished == is->audioq.serial && frame_queue_nb_remaining(&is->sampq) == 0)) &&
             (!is->video_st || (is->viddec.finished == is->videoq.serial && frame_queue_nb_remaining(&is->pictq) == 0))) {
-            if (loop != 1 && (!loop || --loop))
-            {
+            if (loop != 1 && (!loop || --loop)) {
                 stream_seek(is, start_time != AV_NOPTS_VALUE ? start_time : 0, 0, 0);
             }
-            else if (autoexit)
-            {
+            else if (autoexit) {
                 ret = AVERROR_EOF;
                 goto fail;
             }
         }
         ret = av_read_frame(ic, pkt);
-        if (ret < 0)
-        {
-            if ((ret == AVERROR_EOF || avio_feof(ic->pb)) && !is->eof) 
-            {
+        if (ret < 0) {
+            if ((ret == AVERROR_EOF || avio_feof(ic->pb)) && !is->eof) {
                 if (is->video_stream >= 0)
                     packet_queue_put_nullpacket(&is->videoq, is->video_stream);
                 if (is->audio_stream >= 0)
@@ -961,8 +863,7 @@ int Ffplay::read_thread(void* arg)
             av_q2d(ic->streams[pkt->stream_index]->time_base) -
             (double)(start_time != AV_NOPTS_VALUE ? start_time : 0) / 1000000
             <= ((double)duration / 1000000);
-        if (pkt->stream_index == is->audio_stream && pkt_in_play_range)
-        {
+        if (pkt->stream_index == is->audio_stream && pkt_in_play_range) {
             packet_queue_put(&is->audioq, pkt);
         }
         else if (pkt->stream_index == is->video_stream && pkt_in_play_range
@@ -1009,7 +910,7 @@ void Ffplay::event_loop(VideoState* cur_stream)
         case SDL_KEYDOWN:
             if (exit_on_keydown || event.key.keysym.sym == SDLK_ESCAPE || event.key.keysym.sym == SDLK_q)
             {
-                close_song(cur_stream);
+                do_exit(cur_stream);
                 quit = true;
                 break;
             }
@@ -1536,21 +1437,18 @@ int Ffplay::decoder_start(Decoder* d, int (*fn)(void*), const char* thread_name,
     }
     return 0;
 }
-int Ffplay::decoder_decode_frame(const char * who, Decoder* d, AVFrame* frame, AVSubtitle* sub)
-{
+int Ffplay::decoder_decode_frame(Decoder* d, AVFrame* frame, AVSubtitle* sub) {
     int ret = AVERROR(EAGAIN);
-    for (;;)
-    {
+
+    for (;;) {
         AVPacket pkt;
 
-        if (d->queue->serial == d->pkt_serial)
-        {
+        if (d->queue->serial == d->pkt_serial) {
             do {
                 if (d->queue->abort_request)
                     return -1;
 
-                switch (d->avctx->codec_type) 
-                {
+                switch (d->avctx->codec_type) {
                 case AVMEDIA_TYPE_VIDEO:
                     ret = avcodec_receive_frame(d->avctx, frame);
                     if (ret >= 0) {
@@ -1560,13 +1458,11 @@ int Ffplay::decoder_decode_frame(const char * who, Decoder* d, AVFrame* frame, A
                         else if (!decoder_reorder_pts) {
                             frame->pts = frame->pkt_dts;
                         }
-                        logger.log(logger.LEVEL_INFO, "decoder_decode_frame has frame %d", ret);
-
                     }
                     break;
                 case AVMEDIA_TYPE_AUDIO:
                     ret = avcodec_receive_frame(d->avctx, frame);
-                    if (ret >= 0)
+                    if (ret >= 0) 
                     {
                         AVRational tb{ 1, frame->sample_rate };
                         if (frame->pts != AV_NOPTS_VALUE)
@@ -1577,7 +1473,6 @@ int Ffplay::decoder_decode_frame(const char * who, Decoder* d, AVFrame* frame, A
                             d->next_pts = frame->pts + frame->nb_samples;
                             d->next_pts_tb = tb;
                         }
-                        logger.log(logger.LEVEL_INFO, "decoder_decode_frame has frame %d", ret);
                     }
                     break;
                 }
@@ -1590,6 +1485,7 @@ int Ffplay::decoder_decode_frame(const char * who, Decoder* d, AVFrame* frame, A
                     return 1;
             } while (ret != AVERROR(EAGAIN));
         }
+
         do {
             if (d->queue->nb_packets == 0)
                 SDL_CondSignal(d->empty_queue_cond);
@@ -1598,29 +1494,26 @@ int Ffplay::decoder_decode_frame(const char * who, Decoder* d, AVFrame* frame, A
                 d->packet_pending = 0;
             }
             else {
-                if (packet_queue_get(who, d->queue, &pkt, 1, &d->pkt_serial) < 0)
+                if (packet_queue_get(d->queue, &pkt, 1, &d->pkt_serial) < 0)
                     return -1;
             }
         } while (d->queue->serial != d->pkt_serial);
 
-        if (pkt.data == flush_pkt.data)
-        {
+        if (pkt.data == flush_pkt.data) {
             avcodec_flush_buffers(d->avctx);
             d->finished = 0;
             d->next_pts = d->start_pts;
             d->next_pts_tb = d->start_pts_tb;
         }
         else {
-            if (d->avctx->codec_type == AVMEDIA_TYPE_SUBTITLE) 
-            {
+            if (d->avctx->codec_type == AVMEDIA_TYPE_SUBTITLE) {
                 int got_frame = 0;
                 ret = avcodec_decode_subtitle2(d->avctx, sub, &got_frame, &pkt);
                 if (ret < 0) {
                     ret = AVERROR(EAGAIN);
                 }
                 else {
-                    if (got_frame && !pkt.data)
-                    {
+                    if (got_frame && !pkt.data) {
                         d->packet_pending = 1;
                         av_packet_move_ref(&d->pkt, &pkt);
                     }
@@ -1810,8 +1703,7 @@ int Ffplay::stream_component_open(VideoState* is, int stream_index)
 
     codec = avcodec_find_decoder(avctx->codec_id);
 
-    switch (avctx->codec_type)
-    {
+    switch (avctx->codec_type) {
     case AVMEDIA_TYPE_AUDIO: is->last_audio_stream = stream_index; forced_codec_name = audio_codec_name; break;
     case AVMEDIA_TYPE_SUBTITLE: is->last_subtitle_stream = stream_index; forced_codec_name = subtitle_codec_name; break;
     case AVMEDIA_TYPE_VIDEO: is->last_video_stream = stream_index; forced_codec_name = video_codec_name; break;
@@ -1856,8 +1748,7 @@ int Ffplay::stream_component_open(VideoState* is, int stream_index)
 
     is->eof = 0;
     ic->streams[stream_index]->discard = AVDISCARD_DEFAULT;
-    switch (avctx->codec_type)
-    {
+    switch (avctx->codec_type) {
     case AVMEDIA_TYPE_AUDIO:
 #if CONFIG_AVFILTER
     {
@@ -1931,9 +1822,9 @@ int Ffplay::stream_component_open(VideoState* is, int stream_index)
 
 fail:
     avcodec_free_context(&avctx);
-    logger.log(logger.LEVEL_ERROR, "failed to play audio");
 out:
     av_dict_free(&opts);
+
     return ret;
 }
 int Ffplay::audio_open(void* opaque, int64_t wanted_channel_layout, int wanted_nb_channels, int wanted_sample_rate, struct AudioParams* audio_hw_params)
@@ -1945,8 +1836,7 @@ int Ffplay::audio_open(void* opaque, int64_t wanted_channel_layout, int wanted_n
     int next_sample_rate_idx = FF_ARRAY_ELEMS(next_sample_rates) - 1;
 
     env = SDL_getenv("SDL_AUDIO_CHANNELS");
-    if (env)
-    {
+    if (env) {
         wanted_nb_channels = atoi(env);
         wanted_channel_layout = av_get_default_channel_layout(wanted_nb_channels);
     }
@@ -1966,20 +1856,18 @@ int Ffplay::audio_open(void* opaque, int64_t wanted_channel_layout, int wanted_n
     wanted_spec.format = AUDIO_S16SYS;
     wanted_spec.silence = 0;
     wanted_spec.samples = FFMAX(SDL_AUDIO_MIN_BUFFER_SIZE, 2 << av_log2(wanted_spec.freq / SDL_AUDIO_MAX_CALLBACKS_PER_SEC));
-    wanted_spec.callback = sdl_audio_callback;
+    wanted_spec.callback = static_sdl_audio_callback;
     wanted_spec.userdata = opaque;
-   
-    while (!(audio_dev = SDL_OpenAudioDevice(NULL, 0, &wanted_spec, &spec, SDL_AUDIO_ALLOW_FREQUENCY_CHANGE | SDL_AUDIO_ALLOW_CHANNELS_CHANGE)))
-    {
+    while (!(audio_dev = SDL_OpenAudioDevice(NULL, 0, &wanted_spec, &spec, SDL_AUDIO_ALLOW_FREQUENCY_CHANGE | SDL_AUDIO_ALLOW_CHANNELS_CHANGE))) {
         logger.log(logger.LEVEL_WARNING, "SDL_OpenAudio (%d channels, %d Hz): %s\n",
             wanted_spec.channels, wanted_spec.freq, SDL_GetError());
         wanted_spec.channels = next_nb_channels[FFMIN(7, wanted_spec.channels)];
         if (!wanted_spec.channels) {
             wanted_spec.freq = next_sample_rates[next_sample_rate_idx--];
             wanted_spec.channels = wanted_nb_channels;
-            if (!wanted_spec.freq)
-            {
-                logger.log(logger.LEVEL_ERROR,  "No more combinations to try, audio open failed\n");
+            if (!wanted_spec.freq) {
+                logger.log(logger.LEVEL_ERROR,
+                    "No more combinations to try, audio open failed\n");
                 return -1;
             }
         }
@@ -2022,13 +1910,11 @@ void Ffplay::sdl_audio_callback(void* opaque, Uint8* stream, int len)
     int audio_size, len1;
     if (abort)
         return;
-    Ffplay* ffplay = static_cast<Ffplay*>(opaque);
-   
-    ffplay->audio_callback_time = av_gettime_relative();    
+    audio_callback_time = av_gettime_relative();    
 
     while (len > 0) {
         if (is->audio_buf_index >= is->audio_buf_size) {
-            audio_size = ffplay->audio_decode_frame(is);
+            audio_size = audio_decode_frame(is);
             if (audio_size < 0) {
                 /* if error, just output silence */
                 is->audio_buf = NULL;
@@ -2036,7 +1922,7 @@ void Ffplay::sdl_audio_callback(void* opaque, Uint8* stream, int len)
             }
             else {
                 if (is->show_mode != SHOW_MODE_VIDEO)
-                    ffplay->update_sample_display(is, (int16_t*)is->audio_buf, audio_size);
+                    update_sample_display(is, (int16_t*)is->audio_buf, audio_size);
                 is->audio_buf_size = audio_size;
             }
             is->audio_buf_index = 0;
@@ -2058,8 +1944,8 @@ void Ffplay::sdl_audio_callback(void* opaque, Uint8* stream, int len)
     is->audio_write_buf_size = is->audio_buf_size - is->audio_buf_index;
     /* Let's assume the audio driver that is used by SDL has two periods. */
     if (!isnan(is->audio_clock)) {
-        ffplay->set_clock_at(&is->audclk, is->audio_clock - (double)(2 * is->audio_hw_buf_size + is->audio_write_buf_size) / is->audio_tgt.bytes_per_sec, is->audio_clock_serial, ffplay->audio_callback_time / 1000000.0);
-        ffplay->sync_clock_to_slave(&is->extclk, &is->audclk);
+        set_clock_at(&is->audclk, is->audio_clock - (double)(2 * is->audio_hw_buf_size + is->audio_write_buf_size) / is->audio_tgt.bytes_per_sec, is->audio_clock_serial, audio_callback_time / 1000000.0);
+        sync_clock_to_slave(&is->extclk, &is->audclk);
     }
 }
 /**
@@ -2454,8 +2340,7 @@ void Ffplay::video_audio_display(VideoState* s)
     /* compute display index : center on currently output samples */
     channels = s->audio_tgt.channels;
     nb_display_channels = channels;
-    if (!s->paused)
-    {
+    if (!s->paused) {
         int data_used = s->show_mode == SHOW_MODE_WAVES ? s->width : (2 * nb_freq);
         n = 2 * channels;
         delay = s->audio_write_buf_size;
@@ -2673,7 +2558,7 @@ int Ffplay::get_video_frame(VideoState* is, AVFrame* frame)
 {
     int got_picture;
 
-    if ((got_picture = decoder_decode_frame("video",&is->viddec, frame, NULL)) < 0)
+    if ((got_picture = decoder_decode_frame(&is->viddec, frame, NULL)) < 0)
         return -1;
 
     if (got_picture) {
@@ -2926,7 +2811,6 @@ int Ffplay::static_audio_thread(void* arg)
 }
 int Ffplay::audio_thread(void* arg)
 {
-    logger.log(logger.LEVEL_INFO, "starting audio_thread");
     VideoState* is =static_cast<VideoState*>( arg);
     AVFrame* frame = av_frame_alloc();
     Frame* af;
@@ -2938,21 +2822,15 @@ int Ffplay::audio_thread(void* arg)
     int got_frame = 0;
     AVRational tb;
     int ret = 0;
-    int count1 = 0, count2 = 0;
 
     if (!frame)
         return AVERROR(ENOMEM);
 
     do {
-        char msg[26];
-        sprintf_s(msg, "audio count %d", count1++);
-        if ((got_frame = decoder_decode_frame(msg,&is->auddec, frame, NULL)) < 0)
+        if ((got_frame = decoder_decode_frame(&is->auddec, frame, NULL)) < 0)
             goto the_end;
 
-        if (got_frame)
-        {
-           if(is->auddec.avctx->codec_type==AVMEDIA_TYPE_AUDIO)
-            logger.log(logger.LEVEL_INFO, "GOT FRAME: is %d",got_frame);
+        if (got_frame) {
             AVRational avrational{ 1,frame->sample_rate };
             tb = avrational;
 
@@ -3011,8 +2889,7 @@ int Ffplay::audio_thread(void* arg)
                 is->auddec.finished = is->auddec.pkt_serial;
 #endif
         }
-    }
-    while (ret >= 0 || ret == AVERROR(EAGAIN) || ret == AVERROR_EOF);
+    } while (ret >= 0 || ret == AVERROR(EAGAIN) || ret == AVERROR_EOF);
 the_end:
 #if CONFIG_AVFILTER
     avfilter_graph_free(&is->agraph);
@@ -3049,8 +2926,7 @@ int Ffplay::video_thread(void* arg)
     if (!frame)
         return AVERROR(ENOMEM);
 
-    for (;;) 
-    {
+    for (;;) {
         ret = get_video_frame(is, frame);
         if (ret < 0)
             goto the_end;
@@ -3151,7 +3027,7 @@ int Ffplay::subtitle_thread(void* arg)
         if (!(sp = frame_queue_peek_writable(&is->subpq)))
             return 0;
 
-        if ((got_subtitle = decoder_decode_frame("subtitle", &is->subdec, NULL, &sp->sub)) < 0)
+        if ((got_subtitle = decoder_decode_frame(&is->subdec, NULL, &sp->sub)) < 0)
             break;
 
         pts = 0;
