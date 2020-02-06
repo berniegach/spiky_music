@@ -60,7 +60,7 @@ void Menu::createMainButtons()
 	//lets take advantage that we have the center to create the stop button which is left of the center buttons
 	//the stop button starts as disbaled since we dont have a song playing
 	long i_x_stop = i_x - (i_btn_width + i_distance_between );
-	h_stop_btn = CreateWindow(WC_BUTTON, TEXT("g"), WS_CHILD | WS_VISIBLE | BS_OWNERDRAW, i_x_stop, i_y, i_btn_width, i_btn_height, *h_parent, (HMENU)i_stop_btn_id, *hinst, NULL);
+	h_stop_btn = CreateWindow(WC_BUTTON, TEXT(""), WS_CHILD | WS_VISIBLE | BS_OWNERDRAW, i_x_stop, i_y, i_btn_width, i_btn_height, *h_parent, (HMENU)i_stop_btn_id, *hinst, NULL);
 	EnableWindow(h_stop_btn, false);
 	//create the three center buttons
 	//previous, play, and next
@@ -158,7 +158,7 @@ void Menu::drawButtons(LPDRAWITEMSTRUCT pdis)
 			hBitmap = LoadBitmap(*hinst, MAKEINTRESOURCE(IDB_PREVIOUS_NORMAL));
 			break;
 		case 10:
-			song_playing == SongPlaying::SONG_PLAY_EMPTY || song_playing == SongPlaying::SONG_PLAY_PLAYING ?
+			song_status.song_playing == SongStatus::SongPlaying::SONG_PLAY_EMPTY || song_status.song_playing == SongStatus::SongPlaying::SONG_PLAY_PLAYING ?
 				hBitmap = LoadBitmap(*hinst, MAKEINTRESOURCE(IDB_PLAY_NORMAL)) :
 				hBitmap = LoadBitmap(*hinst, MAKEINTRESOURCE(IDB_PAUSE_W_NORMAL));
 			break;
@@ -195,7 +195,7 @@ void Menu::drawButtons(LPDRAWITEMSTRUCT pdis)
 			hBitmap= LoadBitmap(*hinst, MAKEINTRESOURCE(IDB_FAVORITE_ADD_NORMAL_LARGE));
 			break;
 		case 22:
-			song_playing == SongPlaying::SONG_PLAY_EMPTY ?
+			song_status.song_playing == SongStatus::SongPlaying::SONG_PLAY_EMPTY ?
 				hBitmap = LoadBitmap(*hinst, MAKEINTRESOURCE(IDB_STOP_DISABLED)) :
 				hBitmap = LoadBitmap(*hinst, MAKEINTRESOURCE(IDB_STOP_NORMAL));
 			break;
@@ -248,7 +248,7 @@ void Menu::drawButtons(LPDRAWITEMSTRUCT pdis)
 				hBitmap = LoadBitmap(*hinst, MAKEINTRESOURCE(IDB_PREVIOUS_PRESSED));
 				break;
 			case 10:
-				song_playing == SongPlaying::SONG_PLAY_EMPTY || song_playing == SongPlaying::SONG_PLAY_PLAYING ?
+				song_status.song_playing == SongStatus::SongPlaying::SONG_PLAY_EMPTY || song_status.song_playing == SongStatus::SongPlaying::SONG_PLAY_PLAYING ?
 					hBitmap = LoadBitmap(*hinst, MAKEINTRESOURCE(IDB_PLAY_PRESSED)) :
 					hBitmap = LoadBitmap(*hinst, MAKEINTRESOURCE(IDB_PAUSE_W_PRESSED));
 				break;
@@ -426,6 +426,7 @@ void Menu::windowSizeChanged(HWND* hwnd)
 }
 void Menu::mainButtonClicked(int id,HWND h_clicked)
 {
+	
 	using std::future;
 	using std::async;
 	using std::launch;
@@ -458,7 +459,7 @@ void Menu::mainButtonClicked(int id,HWND h_clicked)
 	else if (id == i_play_btn_id)
 	{
 		//if there are no songs in the que find the song to play
-		if ( song_playing==SongPlaying::SONG_PLAY_EMPTY && !song_opened)
+		if ( song_status.song_playing==SongStatus::SongPlaying::SONG_PLAY_EMPTY)
 		{
 			FileExplorer file_explorer;
 			//make sure file_explorer is not cancelled
@@ -468,32 +469,32 @@ void Menu::mainButtonClicked(int id,HWND h_clicked)
 			if (songs_to_play.size() == 1)
 			{
 				ft=std::async(launch::async, &Menu::play_song, this, songs_to_play.at(0));
-				song_playing = SongPlaying::SONG_PLAY_PLAYING;
-				EnableWindow(h_stop_btn,true);
+				update_stop_button(true);
+				//EnableWindow(h_stop_btn,true);
 			}
 			else
 			{
 				wstring directory = songs_to_play.at(0);
-				wstring song_path=directory + L"\\" + songs_to_play.at(++current_song);
+				wstring song_path=directory + L"\\" + songs_to_play.at(++song_status.song_number);
 				ft = std::async(launch::async, &Menu::play_song, this, song_path);
-				song_playing = SongPlaying::SONG_PLAY_PLAYING;	
-				EnableWindow(h_stop_btn, true);
+				update_stop_button(true);
+				//EnableWindow(h_stop_btn, true);
 
 			}
 		}
-		else if(song_opened)
+		else
 		{
 			//first we check if we are playing the first song
 			//or we are proceeding to play a song
-			if (song_playing == SongPlaying::SONG_PLAY_EMPTY || song_playing == SongPlaying::SONG_PLAY_PLAYING)
+			if (song_status.song_playing == SongStatus::SongPlaying::SONG_PLAY_PLAYING)
 			{
 				if (send_sdl_music_event(SdlMusicOptions::SDL_SONG_PAUSE))
-					song_playing = SongPlaying::SONG_PLAY_PAUSED;
+					song_status.song_playing = SongStatus::SongPlaying::SONG_PLAY_PAUSED;
 			}		
-			else if (song_playing == SongPlaying::SONG_PLAY_PAUSED)
+			else if (song_status.song_playing == SongStatus::SongPlaying::SONG_PLAY_PAUSED)
 			{
 				if(send_sdl_music_event(SdlMusicOptions::SDL_SONG_PLAY))
-					song_playing = SongPlaying::SONG_PLAY_PLAYING;
+					song_status.song_playing = SongStatus::SongPlaying::SONG_PLAY_PLAYING;
 			}
 			//we refresh the playing button so that when we click the button a second time it reflects the pause intent
 			InvalidateRect(h_clicked, NULL, true);
@@ -502,29 +503,39 @@ void Menu::mainButtonClicked(int id,HWND h_clicked)
 		}
 		
 	}
-	else if (id = i_next_btn_id)
+	else if (id == i_next_btn_id)
 	{
-		if (songs_to_play.size() > current_song + 1)
+		if (songs_to_play.size() > song_status.song_number + 1)
 		{
 			//first lets quit the current song
 			send_sdl_music_event(SdlMusicOptions::SDL_SONG_QUIT);
-			song_playing = SongPlaying::SONG_PLAY_EMPTY;
-			
+			ft.get();	
 			//now lets play the next song
 			wstring directory = songs_to_play.at(0);
-			wstring song_path = directory + L"\\" + songs_to_play.at(++current_song);
+			wstring song_path = directory + L"\\" + songs_to_play.at(++song_status.song_number);
+			ft = std::async(launch::async, &Menu::play_song, this, song_path);
+		}
+	}
+	else if (id == i_previous_btn_id)
+	{
+		if (song_status.song_number - 1 > 0)
+		{
+			//first lets quit the current song
+			send_sdl_music_event(SdlMusicOptions::SDL_SONG_QUIT);
+			ft.get();
+			//now lets play the next song
+			wstring directory = songs_to_play.at(0);
+			wstring song_path = directory + L"\\" + songs_to_play.at(--song_status.song_number);
 			ft = std::async(launch::async, &Menu::play_song, this, song_path);
 		}
 	}
 	else if (id == i_stop_btn_id)
 	{
-		songs_to_play.clear();
 		send_sdl_music_event(SdlMusicOptions::SDL_SONG_QUIT);
-		song_playing = SongPlaying::SONG_PLAY_EMPTY;
-		InvalidateRect(h_clicked, NULL, true);
-		UpdateWindow(h_clicked);
-		SetFocus(NULL);
-		EnableWindow(h_stop_btn, false);
+		ft.get();
+		update_stop_button(false);
+		songs_to_play.clear();
+		song_status.song_number = 0;
 	}
 }
 
@@ -574,17 +585,29 @@ int Menu::send_sdl_music_event(SdlMusicOptions options)
 }
 void Menu::play_song(wstring song_path)
 {
-	ready_to_play_song = false;
 	using std::future;
 	using std::async;
 	using std::launch;
-	
 
-	string input{ song_path.begin(),song_path.end() };
 	Ffplay ffplay;
-	ffplay.play_song(input, h_sdl_window, &song_opened);
-
-	ready_to_play_song = true;
+	string input{ song_path.begin(),song_path.end() };
+	//lets plays the song
+	song_status.song_playing = SongStatus::SongPlaying::SONG_PLAY_PLAYING;	
+	ffplay.play_song(input, h_sdl_window);
+	//the song is not playing anymore
+	song_status.song_playing = SongStatus::SongPlaying::SONG_PLAY_EMPTY;
+}
+/*
+update the stop button to reflect the status of the song
+NB: ALL GUI updating MUST be done in the main thread. if we do it in the async the app will hang*/
+void Menu::update_stop_button(bool enable)
+{
+	
+	EnableWindow(h_stop_btn, enable);
+	SetFocus(NULL);
+	InvalidateRect(h_stop_btn, NULL, true);
+	UpdateWindow(h_stop_btn);
+	ShowWindow(h_sdl_window, false);
 }
 /*
 we place exit functions here because when we close the main window the destructor is not called properly
@@ -593,18 +616,11 @@ so we instead call this function to close
 void Menu::exit()
 {
 	//first we check if there is a song playing we shut it down
-	if (song_opened)
+	if (song_status.song_playing == SongStatus::SongPlaying::SONG_PLAY_PLAYING || song_status.song_playing == SongStatus::SongPlaying::SONG_PLAY_PAUSED)
 	{
 		send_sdl_music_event(SdlMusicOptions::SDL_SONG_QUIT);
 	}
 	GdiplusShutdown(gdiplusToken);
-}
-void Menu::show(int64_t duration)
-{
-	wchar_t dur[26];
-	SetWindowTextW(h_play_time_txt[0], L"one");
-	wsprintf(dur, L"\n\n\n show song duration " PRId64"\n\n\n", duration);
-	OutputDebugString(dur);
 }
 void Menu::set_song_duration()
 {

@@ -18,84 +18,7 @@ void Ffplay::sdl_push_event()
 
     SDL_PushEvent(&sdlevent);
 }
-void Ffplay::init(HWND parent)
-{
-    int flags;
-    /* register all codecs, demux and protocols */
-#if CONFIG_AVDEVICE
-    avdevice_register_all();
-#endif
-    //avformat_network_init();
-
-    if (display_disable)
-    {
-        video_disable = 1;
-    }
-    flags = SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_TIMER;
-    if (audio_disable)
-        flags &= ~SDL_INIT_AUDIO;
-    else
-    {
-        /* Try to work around an occasional ALSA buffer underflow issue when the
-         * period size is NPOT due to ALSA resampling by forcing the buffer size. */
-        if (!SDL_getenv("SDL_AUDIO_ALSA_SET_BUFFER_SIZE"))
-            SDL_setenv("SDL_AUDIO_ALSA_SET_BUFFER_SIZE", "1", 1);
-    }
-    if (display_disable)
-        flags &= ~SDL_INIT_VIDEO;
-    SDL_SetMainReady();
-    if (SDL_Init(flags))
-    {
-        logger.log(logger.LEVEL_ERROR, "Could not initialize SDL - %s\n", SDL_GetError());
-        logger.log(logger.LEVEL_ERROR, "(Did you set the DISPLAY variable?)\n");
-        return;
-    }
-    //Initialize optional fields of a packet with default values.
-    //Note, this does not touch the data and size members, which have to be initialized separately.
-    av_init_packet(&flush_pkt);
-    flush_pkt.data = (uint8_t*)&flush_pkt;
-
-    if (!display_disable)
-    {
-        int flags = SDL_WINDOW_HIDDEN;
-        if (alwaysontop)
-#if SDL_VERSION_ATLEAST(2,0,5)
-            flags |= SDL_WINDOW_ALWAYS_ON_TOP;
-#else
-            logger.log(logger.LEVEL_INFO, "SDL version doesn't support SDL_WINDOW_ALWAYS_ON_TOP. Feature will be inactive.\n");
-#endif
-        if (borderless)
-            flags |= SDL_WINDOW_BORDERLESS;
-        else
-            flags |= SDL_WINDOW_RESIZABLE;
-        SDL_InitSubSystem(flags);
-        ShowWindow(parent, true);
-        //window = SDL_CreateWindow(program_name, SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, default_width, default_height, flags);
-        window = SDL_CreateWindowFrom(parent);
-        SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "linear");
-        if (window) {
-            renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
-            if (!renderer)
-            {
-                logger.log(logger.LEVEL_ERROR, "Failed to initialize a hardware accelerated renderer: %s\n", SDL_GetError());
-                renderer = SDL_CreateRenderer(window, -1, 0);
-            }
-            if (renderer)
-            {
-                if (!SDL_GetRendererInfo(renderer, &renderer_info))
-                {
-                    logger.log(logger.LEVEL_INFO, "Initialized %s renderer.\n", renderer_info.name);
-                }
-            }
-        }
-        if (!window || !renderer || !renderer_info.num_texture_formats)
-        {
-            logger.log(logger.LEVEL_ERROR, "Failed to create window or renderer: %s\n", SDL_GetError());
-            return;
-        }
-    }
-}
-void Ffplay::play_song(string file, HWND parent, bool* successfull)
+void Ffplay::play_song(string file, HWND parent)
 {
     int flags;
     VideoState* is;
@@ -185,11 +108,7 @@ void Ffplay::play_song(string file, HWND parent, bool* successfull)
         logger.log(logger.LEVEL_ERROR, "Failed to initialize VideoState!\n");
         return ;
     }
-    //the song is playing now
-    *successfull = true;
     event_loop(is);
-    //the song has quit;
-    *successfull = false;
 }
 void Ffplay::close_song(VideoState* video_state)
 {
@@ -221,6 +140,7 @@ VideoState* Ffplay::stream_open(const char* filename, AVInputFormat* iformat)
     is = static_cast<VideoState*>(av_mallocz(sizeof(VideoState)));
     if (!is)
         return NULL;
+    is->show_mode = (VideoState::ShowMode) SHOW_MODE_NONE;
     is->filename = av_strdup(filename);
     if (!is->filename)
         goto fail;
@@ -794,7 +714,7 @@ int Ffplay::read_thread(void* arg)
         st_index[AVMEDIA_TYPE_SUBTITLE] = av_find_best_stream(ic, AVMEDIA_TYPE_SUBTITLE, st_index[AVMEDIA_TYPE_SUBTITLE],
         (st_index[AVMEDIA_TYPE_AUDIO] >= 0 ?   st_index[AVMEDIA_TYPE_AUDIO] :   st_index[AVMEDIA_TYPE_VIDEO]),            NULL, 0);
 
-    is->show_mode = (VideoState::ShowMode)show_mode;
+
     if (st_index[AVMEDIA_TYPE_VIDEO] >= 0) {
         AVStream* st = ic->streams[st_index[AVMEDIA_TYPE_VIDEO]];
         AVCodecParameters* codecpar = st->codecpar;

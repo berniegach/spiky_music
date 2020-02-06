@@ -311,8 +311,7 @@ class Ffplay
 public:
     Ffplay();
     void sdl_push_event();
-	void init(HWND parent);
-    void play_song(string file, HWND parent, bool* successfull);
+    void play_song(string file, HWND parent);
     void close_song(VideoState* video_state);
     void displayLastErrorDebug(LPTSTR lpSzFunction);
     VideoState* stream_open(const char* filename, AVInputFormat* iformat);
@@ -470,7 +469,7 @@ private:
     int loop = 1;
     int framedrop = -1;
     int infinite_buffer = -1;
-    enum ShowMode show_mode = SHOW_MODE_NONE;
+    enum ShowMode show_mode=SHOW_MODE_NONE; //the default initializer fro is->show_mode
     const char* audio_codec_name;
     const char* subtitle_codec_name;
     const char* video_codec_name;

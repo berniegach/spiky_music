@@ -33,22 +33,23 @@ public:
 	typedef enum class SdlMusicOptions { SDL_SONG_QUIT, SDL_SONG_PLAY, SDL_SONG_PAUSE } sdl_music_options;
 	int send_sdl_music_event(SdlMusicOptions options);
 	void play_song(wstring song_path);
+	void update_stop_button(bool status);
 	void exit();
-	void show(int64_t duration);
 	void set_song_duration();
 	void displayLastErrorDebug(LPTSTR lpSzFunction);
 	~Menu();
 private:
 	GdiplusStartupInput gdiplusStartupInput;
 	ULONG_PTR gdiplusToken;
-	//Ffplay ffplay;
+
+	struct SongStatus
+	{
+		enum class SongPlaying { SONG_PLAY_EMPTY, SONG_PLAY_PLAYING, SONG_PLAY_PAUSED };
+		SongPlaying song_playing{ SongPlaying::SONG_PLAY_EMPTY };
+		int song_number = 0;
+	} song_status;
 	vector<wstring>songs_to_play;
-	typedef enum class SongPlaying { SONG_PLAY_EMPTY, SONG_PLAY_PLAYING, SONG_PLAY_PAUSED };
-	SongPlaying song_playing{ SongPlaying::SONG_PLAY_EMPTY };
-	bool song_opened{ false };
-	bool ready_to_play_song{ true };
-	int current_song = 0;
-	
+		
 	//windows handles
 	HWND* h_parent;
 	HINSTANCE* hinst;
