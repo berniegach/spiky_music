@@ -468,15 +468,15 @@ void Menu::mainButtonClicked(int id,HWND h_clicked)
 
 			if (songs_to_play.size() == 1)
 			{
-				ft=std::async(launch::async, &Menu::play_song, this, songs_to_play.at(0));
+				ft_play_song=std::async(launch::async, &Menu::play_song, this, songs_to_play.at(0));
 				update_stop_button(true);
-				//EnableWindow(h_stop_btn,true);
+				ft_set_song_duration = std::async(launch::async, &Menu::set_song_duration, this);
 			}
 			else
 			{
 				wstring directory = songs_to_play.at(0);
 				wstring song_path=directory + L"\\" + songs_to_play.at(++song_status.song_number);
-				ft = std::async(launch::async, &Menu::play_song, this, song_path);
+				ft_play_song = std::async(launch::async, &Menu::play_song, this, song_path);
 				update_stop_button(true);
 				//EnableWindow(h_stop_btn, true);
 
@@ -509,11 +509,11 @@ void Menu::mainButtonClicked(int id,HWND h_clicked)
 		{
 			//first lets quit the current song
 			send_sdl_music_event(SdlMusicOptions::SDL_SONG_QUIT);
-			ft.get();	
+			ft_play_song.get();	
 			//now lets play the next song
 			wstring directory = songs_to_play.at(0);
 			wstring song_path = directory + L"\\" + songs_to_play.at(++song_status.song_number);
-			ft = std::async(launch::async, &Menu::play_song, this, song_path);
+			ft_play_song = std::async(launch::async, &Menu::play_song, this, song_path);
 		}
 	}
 	else if (id == i_previous_btn_id)
@@ -522,17 +522,17 @@ void Menu::mainButtonClicked(int id,HWND h_clicked)
 		{
 			//first lets quit the current song
 			send_sdl_music_event(SdlMusicOptions::SDL_SONG_QUIT);
-			ft.get();
+			ft_play_song.get();
 			//now lets play the next song
 			wstring directory = songs_to_play.at(0);
 			wstring song_path = directory + L"\\" + songs_to_play.at(--song_status.song_number);
-			ft = std::async(launch::async, &Menu::play_song, this, song_path);
+			ft_play_song = std::async(launch::async, &Menu::play_song, this, song_path);
 		}
 	}
 	else if (id == i_stop_btn_id)
 	{
 		send_sdl_music_event(SdlMusicOptions::SDL_SONG_QUIT);
-		ft.get();
+		ft_play_song.get();
 		update_stop_button(false);
 		songs_to_play.clear();
 		song_status.song_number = 0;
@@ -624,6 +624,43 @@ void Menu::exit()
 }
 void Menu::set_song_duration()
 {
+	int hours, mins, secs, us;
+	int64_t duration;
+	wchar_t total_time[64];
+	wchar_t start_time[64];
+	for (;;)
+	{
+		if (Ffplay::is_song_duration_set())
+		{
+			int64_t duration = Ffplay::get_song_duration();
+			int64_t time = duration + (duration <= INT64_MAX - 5000 ? 5000 : 0);
+			secs = time / AV_TIME_BASE;
+			us = time % AV_TIME_BASE;
+			mins = secs / 60;
+			secs %= 60;
+			hours = mins / 60;
+			mins %= 60;
+			if (hours > 0)
+			{
+				wsprintf(total_time, L"%d:%d:%d", hours, mins, secs);
+				wsprintf(start_time, L"00:00:00");
+			}
+			else if (mins > 0)
+			{
+				wsprintf(total_time, L"%d:%d", mins, secs);
+				wsprintf(start_time, L"00:00");
+			}
+			else
+			{
+				wsprintf(total_time, L"%d", secs);
+				wsprintf(start_time, L"00");
+			}
+			SetWindowText(h_play_time_txt[0], start_time);
+			SetWindowText(h_play_time_txt[1], total_time);
+			break;
+		}
+	}
+	
 }
 void Menu::displayLastErrorDebug(LPTSTR lpSzFunction)
 {

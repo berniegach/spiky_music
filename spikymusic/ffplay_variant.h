@@ -332,7 +332,7 @@ public:
     int packet_queue_put_nullpacket(PacketQueue* q, int stream_index);
     void packet_queue_abort(PacketQueue* q);
     void packet_queue_start(PacketQueue* q);
-    int packet_queue_get(const char*, PacketQueue* q, AVPacket* pkt, int block, int* serial);
+    int packet_queue_get( PacketQueue* q, AVPacket* pkt, int block, int* serial);
     void init_clock(Clock* c, int* queue_serial);
     void set_clock(Clock* c, double pts, int serial);
     void set_clock_at(Clock* c, double pts, int serial, double time);
@@ -369,7 +369,7 @@ public:
     void update_video_pts(VideoState* is, double pts, int64_t pos, int serial);
     void decoder_init(Decoder* d, AVCodecContext* avctx, PacketQueue* queue, SDL_cond* empty_queue_cond);
     int decoder_start(Decoder* d, int(*fn)(void*), const char* thread_name, void* arg);
-    int decoder_decode_frame(const char*, Decoder* d, AVFrame* frame, AVSubtitle* sub);
+    int decoder_decode_frame(Decoder* d, AVFrame* frame, AVSubtitle* sub);
     void decoder_abort(Decoder* d, FrameQueue* fq);
     void decoder_destroy(Decoder* d);
     void set_default_window_size(int width, int height, AVRational sar);
@@ -409,8 +409,8 @@ public:
     void print_error(const char* filename, int err);
     void outputDebugStr(string str);
     int opt_format( const char* arg);
-    bool is_song_duration_set();
-    int64_t get_song_duration();
+    static bool is_song_duration_set();
+    static int64_t get_song_duration();
     void set_duration_in_main_window( int64_t duration);
     ~Ffplay();
 private:
@@ -539,8 +539,8 @@ private:
     AVDictionary* format_opts, * codec_opts, * resample_opts;
     Dump dump;
     static bool abort;
-    bool song_duration_set{ false };
-    int64_t song_duration;
+    static bool song_duration_set;
+    static int64_t song_duration;
    
 };
 

@@ -111,8 +111,8 @@ private:
 	const int i_stop_btn_id = 22;
 
 	std::thread thread_song;
-	std::future<void> ft;
-	std::future<void> ft2;
+	std::future<void> ft_play_song;
+	std::future<void> ft_set_song_duration;
 	//Ffplay ffplay;
 	//VideoState* video_state;
 };
