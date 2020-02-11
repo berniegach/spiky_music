@@ -36,7 +36,9 @@ public:
 	void update_stop_button(bool status);
 	void exit();
 	void set_song_duration();
+	void update_song_time_elapsed();
 	void displayLastErrorDebug(LPTSTR lpSzFunction);
+	void close_song_gui();
 	~Menu();
 private:
 	GdiplusStartupInput gdiplusStartupInput;
@@ -64,6 +66,7 @@ private:
 	double d_play_running_time = 1;
 	double d_play_remaining_time = 2;
 	double d_play_total_time = 3;
+	int i_progress_bar_y_pos = 0;
 	//leftmost buttons 0-7
 	HWND h_comments_btn{};
 	HWND h_upload_btn{};
@@ -113,8 +116,7 @@ private:
 	std::thread thread_song;
 	std::future<void> ft_play_song;
 	std::future<void> ft_set_song_duration;
-	//Ffplay ffplay;
-	//VideoState* video_state;
+	std::future<void> ft_set_song_time_elapsed;
 };
 #endif
 

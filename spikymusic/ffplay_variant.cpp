@@ -7,7 +7,7 @@ bool Ffplay::abort = false;
 SDL_AudioDeviceID Ffplay::audio_dev;
 int64_t Ffplay::song_duration = 0;
 bool Ffplay::song_duration_set = false;
-//AVDictionary* Ffplay::format_opts, * Ffplay::codec_opts, * Ffplay::resample_opts;
+double Ffplay::d_time_played_s = 0;
 Ffplay::Ffplay()
 {
 	
@@ -1020,7 +1020,8 @@ void Ffplay::event_loop(VideoState* cur_stream)
             case SDLK_DOWN:
                 incr = -60.0;
             do_seek:
-                if (seek_by_bytes) {
+                if (seek_by_bytes)
+                {
                     pos = -1;
                     if (pos < 0 && cur_stream->video_stream >= 0)
                         pos = frame_queue_last_pos(&cur_stream->pictq);
@@ -2298,7 +2299,8 @@ void Ffplay::video_refresh(void* opaque, double* remaining_time)
         double av_diff;
 
         cur_time = av_gettime_relative();
-        if (!last_time || (cur_time - last_time) >= 30000) {
+        if (!last_time || (cur_time - last_time) >= 30000)
+        {
             aqsize = 0;
             vqsize = 0;
             sqsize = 0;
@@ -2326,6 +2328,7 @@ void Ffplay::video_refresh(void* opaque, double* remaining_time)
                 sqsize,
                 is->video_st ? is->viddec.avctx->pts_correction_num_faulty_dts : 0,
                 is->video_st ? is->viddec.avctx->pts_correction_num_faulty_pts : 0);*/
+            d_time_played_s = get_master_clock(is);
             fflush(stdout);
             last_time = cur_time;
         }
@@ -3144,30 +3147,11 @@ int64_t Ffplay::get_song_duration()
 {
     return song_duration;
 }
-/*
-set the duration in main window*/
-void Ffplay::set_duration_in_main_window( int64_t duration)
+double Ffplay::get_time_played_in_secs()
 {
-    int hours, mins, secs, us;
-    int64_t time = duration + (duration <= INT64_MAX - 5000 ? 5000 : 0);
-    secs = time / AV_TIME_BASE;
-    us = time % AV_TIME_BASE;
-    mins = secs / 60;
-    secs %= 60;
-    hours = mins / 60;
-    mins %= 60;
-    wchar_t txt[64];
-    if (hours > 0)
-        wsprintf(txt,L"%d:%d:%d", hours, mins, secs);
-    else if(mins>0)
-        wsprintf(txt, L"%d:%d", mins, secs);
-    else
-        wsprintf(txt, L"%d", secs); 
-   /* if (h_play_time_txt[1] == NULL)
-        OutputDebugStringW(L"INAVLIDE HANDLE\n");
-    if(!SetWindowTextW(h_play_time_txt[1], txt))
-        displayLastErrorDebug((LPTSTR)L"Could not set the window title");*/
+    return d_time_played_s;
 }
+
 Ffplay::~Ffplay()
 {
     OutputDebugString(L"\nffplay_variant destructor called\n");

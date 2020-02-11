@@ -394,6 +394,7 @@ void Menu::windowSizeChanged(HWND* hwnd)
 	//move the play progress bar
 	i_x = 10;
 	i_y -= 6;
+	i_progress_bar_y_pos = i_y;
 	int i_progress_left_w = (rect.right - 20) *d_play_running_time/d_play_total_time-4;
 	int i_progress_right_w = (rect.right - 20) *d_play_remaining_time/d_play_total_time;
 	int i_progress_middle_w = 8;
@@ -471,6 +472,7 @@ void Menu::mainButtonClicked(int id,HWND h_clicked)
 				ft_play_song=std::async(launch::async, &Menu::play_song, this, songs_to_play.at(0));
 				update_stop_button(true);
 				ft_set_song_duration = std::async(launch::async, &Menu::set_song_duration, this);
+				ft_set_song_time_elapsed = std::async(launch::async, &Menu::update_song_time_elapsed, this);
 			}
 			else
 			{
@@ -478,7 +480,8 @@ void Menu::mainButtonClicked(int id,HWND h_clicked)
 				wstring song_path=directory + L"\\" + songs_to_play.at(++song_status.song_number);
 				ft_play_song = std::async(launch::async, &Menu::play_song, this, song_path);
 				update_stop_button(true);
-				//EnableWindow(h_stop_btn, true);
+				ft_set_song_duration = std::async(launch::async, &Menu::set_song_duration, this);
+				ft_set_song_time_elapsed = std::async(launch::async, &Menu::update_song_time_elapsed, this);
 
 			}
 		}
@@ -514,6 +517,8 @@ void Menu::mainButtonClicked(int id,HWND h_clicked)
 			wstring directory = songs_to_play.at(0);
 			wstring song_path = directory + L"\\" + songs_to_play.at(++song_status.song_number);
 			ft_play_song = std::async(launch::async, &Menu::play_song, this, song_path);
+			ft_set_song_duration = std::async(launch::async, &Menu::set_song_duration, this);
+			ft_set_song_time_elapsed = std::async(launch::async, &Menu::update_song_time_elapsed, this);
 		}
 	}
 	else if (id == i_previous_btn_id)
@@ -527,6 +532,8 @@ void Menu::mainButtonClicked(int id,HWND h_clicked)
 			wstring directory = songs_to_play.at(0);
 			wstring song_path = directory + L"\\" + songs_to_play.at(--song_status.song_number);
 			ft_play_song = std::async(launch::async, &Menu::play_song, this, song_path);
+			ft_set_song_duration = std::async(launch::async, &Menu::set_song_duration, this);
+			ft_set_song_time_elapsed = std::async(launch::async, &Menu::update_song_time_elapsed, this);
 		}
 	}
 	else if (id == i_stop_btn_id)
@@ -536,6 +543,7 @@ void Menu::mainButtonClicked(int id,HWND h_clicked)
 		update_stop_button(false);
 		songs_to_play.clear();
 		song_status.song_number = 0;
+		close_song_gui();
 	}
 }
 
@@ -625,15 +633,15 @@ void Menu::exit()
 void Menu::set_song_duration()
 {
 	int hours, mins, secs, us;
-	int64_t duration;
+	int64_t duration, time;
 	wchar_t total_time[64];
 	wchar_t start_time[64];
 	for (;;)
 	{
 		if (Ffplay::is_song_duration_set())
 		{
-			int64_t duration = Ffplay::get_song_duration();
-			int64_t time = duration + (duration <= INT64_MAX - 5000 ? 5000 : 0);
+			duration = Ffplay::get_song_duration();
+			time = duration + (duration <= INT64_MAX - 5000 ? 5000 : 0);
 			secs = time / AV_TIME_BASE;
 			us = time % AV_TIME_BASE;
 			mins = secs / 60;
@@ -662,6 +670,64 @@ void Menu::set_song_duration()
 	}
 	
 }
+/*
+this functions get the time the song has been playing and updates it on the GUI
+*/
+void Menu::update_song_time_elapsed()
+{
+	int64_t duration, time;
+	double total_secs = 0;
+	wchar_t total_time[64];
+	for(;;)
+		if (Ffplay::is_song_duration_set())
+		{
+			duration = Ffplay::get_song_duration();
+			time = duration + (duration <= INT64_MAX - 5000 ? 5000 : 0);
+			total_secs = time / AV_TIME_BASE;
+			break;
+		}
+	d_play_total_time = total_secs;
+	for (;;)
+	{
+		if (song_status.song_playing == SongStatus::SongPlaying::SONG_PLAY_EMPTY)
+			break;
+		double secs_elapsed = Ffplay::get_time_played_in_secs();
+
+		//set the elapsed time text label
+		int secs = secs_elapsed;
+		int mins = secs / 60;
+		secs %= 60;
+		int hours = mins / 60;
+		mins %= 60;
+		if (hours > 0)
+			wsprintf(total_time, L"%d:%d:%d", hours, mins, secs);
+		else if (mins > 0)
+			wsprintf(total_time, L"%d:%d", mins, secs);
+		else
+			wsprintf(total_time, L"%d", secs);
+		SetWindowText(h_play_time_txt[0], total_time);
+
+		//set the progress bar
+		d_play_running_time = secs_elapsed;
+		//RECT rect{};
+		//GetWindowRect(h_play_progress_bar[0], &rect);
+		RECT rect{};
+		
+		GetClientRect(GetParent(h_play_progress_bar[0]), &rect);
+		int i_x = 10;
+		int i_y =i_progress_bar_y_pos;
+		int i_progress_left_w = (rect.right - 20) * d_play_running_time / d_play_total_time - 4;
+		int i_progress_right_w = (rect.right - 20) * (d_play_total_time - d_play_running_time) / d_play_total_time;
+		int i_progress_middle_w = 8;
+		int i_progress_h = 4;
+		MoveWindow(h_play_progress_bar[0], i_x, i_y, i_progress_left_w, i_progress_h, true);
+		i_x += i_progress_left_w;
+		MoveWindow(h_play_progress_bar[1], i_x + 8, i_y, i_progress_right_w, i_progress_h, true);
+		i_y -= 2;
+		MoveWindow(h_play_progress_bar[2], i_x, i_y, i_progress_middle_w, i_progress_middle_w, true);
+		Sleep(500);
+	}
+}
 void Menu::displayLastErrorDebug(LPTSTR lpSzFunction)
 {
 	LPVOID lpMsgBuf;
@@ -677,6 +743,14 @@ void Menu::displayLastErrorDebug(LPTSTR lpSzFunction)
 
 	LocalFree(lpMsgBuf);
 	LocalFree(lpDisplayBuf);
+}
+void Menu::close_song_gui()
+{
+	//set the start and end time to defaults
+	SetWindowText(h_play_time_txt[1], L"00:00:00");
+	//ft_set_song_time_elapsed.get();
+	SetWindowText(h_play_time_txt[0], L"00:00:00");
+
 }
 
 Menu::~Menu()

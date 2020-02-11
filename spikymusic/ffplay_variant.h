@@ -411,7 +411,7 @@ public:
     int opt_format( const char* arg);
     static bool is_song_duration_set();
     static int64_t get_song_duration();
-    void set_duration_in_main_window( int64_t duration);
+    static double get_time_played_in_secs();
     ~Ffplay();
 private:
     const char program_name[7] = "ffplay";
@@ -541,6 +541,7 @@ private:
     static bool abort;
     static bool song_duration_set;
     static int64_t song_duration;
+    static double d_time_played_s;
    
 };
 
