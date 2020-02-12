@@ -110,15 +110,11 @@ extern "C"
 #define FRAME_QUEUE_SIZE FFMAX(SAMPLE_QUEUE_SIZE, FFMAX(VIDEO_PICTURE_QUEUE_SIZE, SUBPICTURE_QUEUE_SIZE))
 
 
-
-
-
-
-
-
 using std::string;
 using std::wstring;
 using std::array;
+
+
 typedef struct MyAVPacketList {
     AVPacket pkt;
     struct MyAVPacketList* next;
@@ -345,6 +341,13 @@ public:
     void check_external_clock_speed(VideoState* is);
     void stream_close(VideoState* is);
     void stream_component_close(VideoState* is, int stream_index);
+private:
+    struct SdlThreadData
+    {
+        VideoState* is;
+        Ffplay* ffplay;
+    };
+public:
     static int static_read_thread(void* arg);
     int read_thread(void* arg);
     void event_loop(VideoState* cur_stream);
@@ -380,7 +383,7 @@ public:
     int stream_component_open(VideoState* is, int stream_index);
     int audio_open(void* opaque, int64_t wanted_channel_layout, int wanted_nb_channels, int wanted_sample_rate, AudioParams* audio_hw_params);
     static void static_sdl_audio_callback(void* opaque, Uint8* stream, int len);
-    static void sdl_audio_callback(void* opaque, Uint8* stream, int len);
+    void sdl_audio_callback(void* opaque, Uint8* stream, int len);
     int audio_decode_frame(VideoState* is);
     int synchronize_audio(VideoState* is, int nb_samples);
     void update_sample_display(VideoState* is, short* samples, int samples_size);
@@ -442,7 +445,7 @@ private:
     int audio_disable = false;
     int video_disable = false;
     int subtitle_disable = false;
-    const char* wanted_stream_spec[AVMEDIA_TYPE_NB] =
+    string wanted_stream_spec[AVMEDIA_TYPE_NB] =
     { "v", // video
         "a", // audio 
         "s", // subtitle
@@ -466,7 +469,7 @@ private:
     int autoexit;
     int exit_on_keydown;
     int exit_on_mousedown=1;
-    int loop = 1;
+    int loop =1;
     int framedrop = -1;
     int infinite_buffer = -1;
     enum ShowMode show_mode=SHOW_MODE_NONE; //the default initializer fro is->show_mode
@@ -542,6 +545,12 @@ private:
     static bool song_duration_set;
     static int64_t song_duration;
     static double d_time_played_s;
+
+    public:
+    static Uint32 sdl_my_event;
+    bool sdl_event_registered = false;
+    enum class SdlMyEventsCode { SDL_SEEK_PROGRESSBAR = 1 };
+    
    
 };
 

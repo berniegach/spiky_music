@@ -12,6 +12,7 @@ Menu::Menu(HWND* parent, HINSTANCE* hinstance,int parent_width,int parent_height
 {
 	//initialize GDI+
 	GdiplusStartup(&gdiplusToken, &gdiplusStartupInput, NULL);
+	sdl_event= SDL_RegisterEvents(1);
 	createMainButtons();
 }
 void Menu::Init(HWND* parent, HINSTANCE* hinstance, int parent_width, int parent_height)
@@ -491,12 +492,12 @@ void Menu::mainButtonClicked(int id,HWND h_clicked)
 			//or we are proceeding to play a song
 			if (song_status.song_playing == SongStatus::SongPlaying::SONG_PLAY_PLAYING)
 			{
-				if (send_sdl_music_event(SdlMusicOptions::SDL_SONG_PAUSE))
+				if (send_sdl_music_event(SdlMusicOptions::SDL_SONG_PAUSE, 0))
 					song_status.song_playing = SongStatus::SongPlaying::SONG_PLAY_PAUSED;
 			}		
 			else if (song_status.song_playing == SongStatus::SongPlaying::SONG_PLAY_PAUSED)
 			{
-				if(send_sdl_music_event(SdlMusicOptions::SDL_SONG_PLAY))
+				if(send_sdl_music_event(SdlMusicOptions::SDL_SONG_PLAY, 0))
 					song_status.song_playing = SongStatus::SongPlaying::SONG_PLAY_PLAYING;
 			}
 			//we refresh the playing button so that when we click the button a second time it reflects the pause intent
@@ -511,7 +512,7 @@ void Menu::mainButtonClicked(int id,HWND h_clicked)
 		if (songs_to_play.size() > song_status.song_number + 1)
 		{
 			//first lets quit the current song
-			send_sdl_music_event(SdlMusicOptions::SDL_SONG_QUIT);
+			send_sdl_music_event(SdlMusicOptions::SDL_SONG_QUIT, 0);
 			ft_play_song.get();	
 			//now lets play the next song
 			wstring directory = songs_to_play.at(0);
@@ -526,7 +527,7 @@ void Menu::mainButtonClicked(int id,HWND h_clicked)
 		if (song_status.song_number - 1 > 0)
 		{
 			//first lets quit the current song
-			send_sdl_music_event(SdlMusicOptions::SDL_SONG_QUIT);
+			send_sdl_music_event(SdlMusicOptions::SDL_SONG_QUIT, 0);
 			ft_play_song.get();
 			//now lets play the next song
 			wstring directory = songs_to_play.at(0);
@@ -538,12 +539,16 @@ void Menu::mainButtonClicked(int id,HWND h_clicked)
 	}
 	else if (id == i_stop_btn_id)
 	{
-		send_sdl_music_event(SdlMusicOptions::SDL_SONG_QUIT);
+		send_sdl_music_event(SdlMusicOptions::SDL_SONG_QUIT, 0);
 		ft_play_song.get();
 		update_stop_button(false);
 		songs_to_play.clear();
 		song_status.song_number = 0;
 		close_song_gui();
+	}
+	else if (id == i_play_progress_bar_id[0] || id == i_play_progress_bar_id[1] || id == i_play_progress_bar_id[2])
+	{
+		progress_bar_clicked(h_clicked);
 	}
 }
 
@@ -567,7 +572,7 @@ void Menu::paint(HDC* hdc, HWND* hwnd)
 	SolidBrush solid_brush(Color(230, 230, 230));
 	graphics.FillRectangle(&solid_brush, i_x, i_y, i_w, i_h);
 }
-int Menu::send_sdl_music_event(SdlMusicOptions options)
+int Menu::send_sdl_music_event(SdlMusicOptions options, void* seek_fraction)
 {
 	SDL_Event sdlevent;
 	int i_return = 0;
@@ -588,6 +593,22 @@ int Menu::send_sdl_music_event(SdlMusicOptions options)
 		sdlevent.key.keysym.sym = SDLK_SPACE;
 		i_return = SDL_PushEvent(&sdlevent);
 		break;
+	case SdlMusicOptions::SDL_SONG_SEEK:
+	{
+		Uint32 sdl_event= sdl_event = SDL_RegisterEvents(1);
+		if (Ffplay::sdl_my_event != ((Uint32)-1))
+		{
+			SDL_Event event;
+			SDL_memset(&event, 0, sizeof(event)); /* or SDL_zero(event) */
+			event.type = Ffplay::sdl_my_event;
+			event.user.code = 1;
+			event.user.data1 = seek_fraction;
+			i_return = SDL_PushEvent(&event);
+		}
+		else
+			OutputDebugString(L"wrong event");
+	}
+	break;
 	}
 	return i_return;
 }
@@ -626,7 +647,7 @@ void Menu::exit()
 	//first we check if there is a song playing we shut it down
 	if (song_status.song_playing == SongStatus::SongPlaying::SONG_PLAY_PLAYING || song_status.song_playing == SongStatus::SongPlaying::SONG_PLAY_PAUSED)
 	{
-		send_sdl_music_event(SdlMusicOptions::SDL_SONG_QUIT);
+		send_sdl_music_event(SdlMusicOptions::SDL_SONG_QUIT, 0);
 	}
 	GdiplusShutdown(gdiplusToken);
 }
@@ -751,6 +772,43 @@ void Menu::close_song_gui()
 	//ft_set_song_time_elapsed.get();
 	SetWindowText(h_play_time_txt[0], L"00:00:00");
 
+}
+void Menu::progress_bar_clicked(HWND h_clicked)
+{
+	if (h_clicked == h_play_progress_bar[2])
+		return;
+	POINT point;
+	RECT rect_left, rect_middle, rect_right, rect_parent;
+	int total_width = 0;
+	double* frac = (double*)malloc(sizeof(double));
+
+	GetCursorPos(&point);
+	ScreenToClient(GetParent(h_clicked), &point);
+	
+	GetClientRect(h_play_progress_bar[0], &rect_left);
+	GetClientRect(h_play_progress_bar[1], &rect_middle);
+	GetClientRect(h_play_progress_bar[2], &rect_right);
+	GetClientRect(GetParent(h_play_progress_bar[0]), &rect_parent);
+
+	//total_width = rect_left.right + rect_right.right;
+
+	int i_x = 10;
+	int i_y = i_progress_bar_y_pos;
+	double i_progress_left_w = point.x - 10;
+	double i_progress_right_w = rect_parent.right - 20 - i_progress_left_w - 8;
+	int i_progress_middle_w = 8;
+	int i_progress_h = 4;
+	MoveWindow(h_play_progress_bar[0], i_x, i_y, i_progress_left_w, i_progress_h, true);
+	i_x += i_progress_left_w;
+	MoveWindow(h_play_progress_bar[1], i_x + 8, i_y, i_progress_right_w, i_progress_h, true);
+	i_y -= 2;
+	MoveWindow(h_play_progress_bar[2], i_x, i_y, i_progress_middle_w, i_progress_middle_w, true);
+
+	*frac = i_progress_left_w / (i_progress_left_w + i_progress_right_w + 8);
+	*frac = *frac >= 100 ? 100 : *frac;
+	*frac = *frac >= 0 ? *frac : 0;
+
+	send_sdl_music_event(SdlMusicOptions::SDL_SONG_SEEK, frac);
 }
 
 Menu::~Menu()

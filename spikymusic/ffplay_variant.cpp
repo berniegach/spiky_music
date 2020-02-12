@@ -8,6 +8,8 @@ SDL_AudioDeviceID Ffplay::audio_dev;
 int64_t Ffplay::song_duration = 0;
 bool Ffplay::song_duration_set = false;
 double Ffplay::d_time_played_s = 0;
+Uint32 Ffplay::sdl_my_event;
+//int Ffplay::loop = 1;
 Ffplay::Ffplay()
 {
 	
@@ -103,7 +105,11 @@ void Ffplay::play_song(string file, HWND parent)
             return ;
         }
     }
-
+    if (!sdl_event_registered)
+    {
+        sdl_my_event = SDL_RegisterEvents(1);
+        sdl_event_registered = true;
+    }
     is = stream_open(input_filename.c_str(), file_iformat);
     if (!is)
     {
@@ -138,59 +144,62 @@ void Ffplay::displayLastErrorDebug(LPTSTR lpSzFunction)
 }
 VideoState* Ffplay::stream_open(const char* filename, AVInputFormat* iformat)
 {
-    VideoState* is;
+    //here we dynamically allocate memory for the sdlthreaddata struct.
+    //this is so we can pass both this and videostate variable to the static function wrapper
+    SdlThreadData* sdl_thread_data= static_cast<SdlThreadData*>(malloc(sizeof(SdlThreadData)));
+    sdl_thread_data->ffplay = this;
 
-    is = static_cast<VideoState*>(av_mallocz(sizeof(VideoState)));
-    if (!is)
+    sdl_thread_data->is = static_cast<VideoState*>(av_mallocz(sizeof(VideoState)));
+    if (!sdl_thread_data->is)
         return NULL;
-    is->show_mode = (VideoState::ShowMode) SHOW_MODE_NONE;
-    is->filename = av_strdup(filename);
-    if (!is->filename)
+    sdl_thread_data->is->show_mode = (VideoState::ShowMode) show_mode;
+    sdl_thread_data->is->filename = av_strdup(filename);
+    if (!sdl_thread_data->is->filename)
         goto fail;
-    is->iformat = iformat;
-    is->ytop = 0;
-    is->xleft = 0;
+    sdl_thread_data->is->iformat = iformat;
+    sdl_thread_data->is->ytop = 0;
+    sdl_thread_data->is->xleft = 0;
 
     /* start video display */
-    if (frame_queue_init(&is->pictq, &is->videoq, VIDEO_PICTURE_QUEUE_SIZE, 1) < 0)
+    if (frame_queue_init(&sdl_thread_data->is->pictq, &sdl_thread_data->is->videoq, VIDEO_PICTURE_QUEUE_SIZE, 1) < 0)
         goto fail;
-    if (frame_queue_init(&is->subpq, &is->subtitleq, SUBPICTURE_QUEUE_SIZE, 0) < 0)
+    if (frame_queue_init(&sdl_thread_data->is->subpq, &sdl_thread_data->is->subtitleq, SUBPICTURE_QUEUE_SIZE, 0) < 0)
         goto fail;
-    if (frame_queue_init(&is->sampq, &is->audioq, SAMPLE_QUEUE_SIZE, 1) < 0)
-        goto fail;
-
-    if (packet_queue_init(&is->videoq) < 0 ||
-        packet_queue_init(&is->audioq) < 0 ||
-        packet_queue_init(&is->subtitleq) < 0)
+    if (frame_queue_init(&sdl_thread_data->is->sampq, &sdl_thread_data->is->audioq, SAMPLE_QUEUE_SIZE, 1) < 0)
         goto fail;
 
-    if (!(is->continue_read_thread = SDL_CreateCond())) 
+    if (packet_queue_init(&sdl_thread_data->is->videoq) < 0 ||
+        packet_queue_init(&sdl_thread_data->is->audioq) < 0 ||
+        packet_queue_init(&sdl_thread_data->is->subtitleq) < 0)
+        goto fail;
+
+    if (!(sdl_thread_data->is->continue_read_thread = SDL_CreateCond()))
     {
         logger.log(logger.LEVEL_FATAL, "SDL_CreateCond() :%s", SDL_GetError());
         goto fail;
     }
 
-    init_clock(&is->vidclk, &is->videoq.serial);
-    init_clock(&is->audclk, &is->audioq.serial);
-    init_clock(&is->extclk, &is->extclk.serial);
-    is->audio_clock_serial = -1;
+    init_clock(&sdl_thread_data->is->vidclk, &sdl_thread_data->is->videoq.serial);
+    init_clock(&sdl_thread_data->is->audclk, &sdl_thread_data->is->audioq.serial);
+    init_clock(&sdl_thread_data->is->extclk, &sdl_thread_data->is->extclk.serial);
+    sdl_thread_data->is->audio_clock_serial = -1;
     if (startup_volume < 0)
         logger.log(logger.LEVEL_WARNING, "-volume=%d < 0, setting to 0\n", startup_volume);
     if (startup_volume > 100)
         logger.log(logger.LEVEL_WARNING, "-volume=%d > 100, setting to 100\n", startup_volume);
     startup_volume = av_clip(startup_volume, 0, 100);
     startup_volume = av_clip(SDL_MIX_MAXVOLUME * startup_volume / 100, 0, SDL_MIX_MAXVOLUME);
-    is->audio_volume = startup_volume;
-    is->muted = 0;
-    is->av_sync_type = av_sync_type;
-    is->read_tid = SDL_CreateThread(static_read_thread, "read_thread", is);
-    if (!is->read_tid) {
+    sdl_thread_data->is->audio_volume = startup_volume;
+    sdl_thread_data->is->muted = 0;
+    sdl_thread_data->is->av_sync_type = av_sync_type;
+    sdl_thread_data->is->read_tid = SDL_CreateThread(static_read_thread, "read_thread", sdl_thread_data);
+    if (!sdl_thread_data->is->read_tid) {
         logger.log(logger.LEVEL_FATAL, "SDL_CreateThread(): %s\n", SDL_GetError());
     fail:
-        stream_close(is);
+        stream_close(sdl_thread_data->is);
         return NULL;
     }
-    return is;
+    return sdl_thread_data->is;
 }
 /* create sdl mutex and conditional variable for the packet queue */
 int Ffplay::packet_queue_init(PacketQueue* q)
@@ -565,12 +574,15 @@ void Ffplay::stream_component_close(VideoState* is, int stream_index)
 }
 int Ffplay::static_read_thread(void* arg)
 {
-    return ((Ffplay*)arg)->read_thread(arg);
+
+    return ((SdlThreadData*)arg)->ffplay->read_thread(arg);
 }
 /* this thread gets the stream from the disk or the network */
 int Ffplay::read_thread(void* arg)
 {
-    VideoState* is = static_cast<VideoState*>(arg);
+    SdlThreadData* sdl_thread_data = static_cast<SdlThreadData*>(arg);
+   
+    VideoState* is = sdl_thread_data->is;
     AVFormatContext* ic = NULL;
     int err, i, ret;
     int st_index[AVMEDIA_TYPE_NB];
@@ -582,10 +594,7 @@ int Ffplay::read_thread(void* arg)
     int scan_all_pmts_set = 0;
     int64_t pkt_ts; 
 
-    //we will use local variable ot type string because the global one 
-    // of type const char* fails in this function called from static context
-    string wanted_stream_spec[]{ "v","a","s","d","t" };
-   
+      
     if (!wait_mutex) {
         logger.log(logger.LEVEL_FATAL, "SDL_CreateMutex(): %s\n", SDL_GetError());
         ret = AVERROR(ENOMEM);
@@ -1113,7 +1122,8 @@ void Ffplay::event_loop(VideoState* cur_stream)
             }
             break;
         case SDL_WINDOWEVENT:
-            switch (event.window.event) {
+            switch (event.window.event)
+            {
             case SDL_WINDOWEVENT_SIZE_CHANGED:
                 screen_width = cur_stream->width = event.window.data1;
                 screen_height = cur_stream->height = event.window.data2;
@@ -1129,6 +1139,35 @@ void Ffplay::event_loop(VideoState* cur_stream)
         case FF_QUIT_EVENT:
             do_exit(cur_stream);
             break;
+        case SDL_USEREVENT:
+        {
+            switch (event.user.code)
+            {
+            case 1:
+            {
+                double* frac = (double*)event.user.data1;
+                int64_t ts;
+                int ns, hh, mm, ss;
+                int tns, thh, tmm, tss;
+                tns = cur_stream->ic->duration / 1000000LL;
+                thh = tns / 3600;
+                tmm = (tns % 3600) / 60;
+                tss = (tns % 60);
+                ns = *frac * tns;
+                hh = ns / 3600;
+                mm = (ns % 3600) / 60;
+                ss = (ns % 60);
+                ts = *frac * cur_stream->ic->duration;
+                if (cur_stream->ic->start_time != AV_NOPTS_VALUE)
+                    ts += cur_stream->ic->start_time;
+                stream_seek(cur_stream, ts, 0, 0);
+                free(frac);
+            }
+            break;
+            }
+            
+        }
+        break;
         default:
             break;
         }
@@ -1894,7 +1933,7 @@ int Ffplay::audio_open(void* opaque, int64_t wanted_channel_layout, int wanted_n
     wanted_spec.format = AUDIO_S16SYS;
     wanted_spec.silence = 0;
     wanted_spec.samples = FFMAX(SDL_AUDIO_MIN_BUFFER_SIZE, 2 << av_log2(wanted_spec.freq / SDL_AUDIO_MAX_CALLBACKS_PER_SEC));
-    wanted_spec.callback = sdl_audio_callback;
+    wanted_spec.callback = static_sdl_audio_callback;
     wanted_spec.userdata = opaque;
    
     while (!(audio_dev = SDL_OpenAudioDevice(NULL, 0, &wanted_spec, &spec, SDL_AUDIO_ALLOW_FREQUENCY_CHANGE | SDL_AUDIO_ALLOW_CHANNELS_CHANGE)))

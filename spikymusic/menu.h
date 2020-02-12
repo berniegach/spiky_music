@@ -30,8 +30,8 @@ public:
 	void windowSizeChanged(HWND* hwnd);
 	void mainButtonClicked(int id,HWND h_clicked);
 	void paint(HDC* hdc,HWND* hwnd);
-	typedef enum class SdlMusicOptions { SDL_SONG_QUIT, SDL_SONG_PLAY, SDL_SONG_PAUSE } sdl_music_options;
-	int send_sdl_music_event(SdlMusicOptions options);
+	typedef enum class SdlMusicOptions { SDL_SONG_QUIT, SDL_SONG_PLAY, SDL_SONG_PAUSE, SDL_SONG_SEEK } sdl_music_options;
+	int send_sdl_music_event(SdlMusicOptions options, void* seek_fraction);
 	void play_song(wstring song_path);
 	void update_stop_button(bool status);
 	void exit();
@@ -39,10 +39,12 @@ public:
 	void update_song_time_elapsed();
 	void displayLastErrorDebug(LPTSTR lpSzFunction);
 	void close_song_gui();
+	void progress_bar_clicked(HWND h_clicked);
 	~Menu();
 private:
 	GdiplusStartupInput gdiplusStartupInput;
 	ULONG_PTR gdiplusToken;
+	Uint32 sdl_event ;
 
 	struct SongStatus
 	{
