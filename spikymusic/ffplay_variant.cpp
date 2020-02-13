@@ -22,11 +22,12 @@ void Ffplay::sdl_push_event()
 
     SDL_PushEvent(&sdlevent);
 }
-void Ffplay::play_song(string file, HWND parent)
+void Ffplay::play_song(string file, HWND parent, VideoState::ShowMode my_show_mode)
 {
     int flags;
     VideoState* is;
     input_filename = file;
+    show_mode = (Ffplay::ShowMode)my_show_mode;
     /* register all codecs, demux and protocols */
 #if CONFIG_AVDEVICE
     avdevice_register_all();
@@ -1182,8 +1183,8 @@ void Ffplay::refresh_loop_wait_event(VideoState* is, SDL_Event* event) {
     {
         
         if (!cursor_hidden && av_gettime_relative() - cursor_last_shown > CURSOR_HIDE_DELAY) {
-            SDL_ShowCursor(0);
-            cursor_hidden = 1;
+            //SDL_ShowCursor(0);
+            //cursor_hidden = 1;
         }
         if (remaining_time > 0.0)
             av_usleep((int64_t)(remaining_time * 1000000.0));
@@ -2464,8 +2465,9 @@ void Ffplay::video_audio_display(VideoState* s)
         i_start = s->last_i_start;
     }
 
-    if (s->show_mode == SHOW_MODE_WAVES) {
-        SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
+    if (s->show_mode == SHOW_MODE_WAVES)
+    {
+        SDL_SetRenderDrawColor(renderer, 255,  255,  255, 255);
 
         /* total height for one channel */
         h = s->height / nb_display_channels;

@@ -11,11 +11,18 @@
 #include "ffplay_variant.h"
 #include <thread>
 #include <future>
+#include <exception>
 #include "logger.h"
-using namespace Gdiplus;
+#include <Shlobj.h>
+#include <ShlObj_core.h>
+#include "Shlwapi.h"
+
 #pragma comment (lib,"Gdiplus.lib")
 #pragma comment(lib,"SDL2.lib")
+#pragma comment(lib,"Shell32.lib")
+#pragma comment(lib,"Shlwapi.lib")
 
+using namespace Gdiplus;
 using std::array;
 using std::vector;
 using std::wstring;
@@ -33,10 +40,11 @@ public:
 	typedef enum class SdlMusicOptions { SDL_SONG_QUIT, SDL_SONG_PLAY, SDL_SONG_PAUSE, SDL_SONG_SEEK } sdl_music_options;
 	int send_sdl_music_event(SdlMusicOptions options, void* seek_fraction);
 	void play_song(wstring song_path);
+	void play_song_task(wstring song_path);
 	void update_stop_button(bool status);
 	void exit();
-	void set_song_duration();
-	void update_song_time_elapsed();
+	void set_song_duration_task();
+	void update_song_time_elapsed_task();
 	void displayLastErrorDebug(LPTSTR lpSzFunction);
 	void close_song_gui();
 	void progress_bar_clicked(HWND h_clicked);

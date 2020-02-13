@@ -307,7 +307,7 @@ class Ffplay
 public:
     Ffplay();
     void sdl_push_event();
-    void play_song(string file, HWND parent);
+    void play_song(string file, HWND parent, VideoState::ShowMode show_mode);
     void close_song(VideoState* video_state);
     void displayLastErrorDebug(LPTSTR lpSzFunction);
     VideoState* stream_open(const char* filename, AVInputFormat* iformat);

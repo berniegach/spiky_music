@@ -13,6 +13,7 @@ Menu::Menu(HWND* parent, HINSTANCE* hinstance,int parent_width,int parent_height
 	//initialize GDI+
 	GdiplusStartup(&gdiplusToken, &gdiplusStartupInput, NULL);
 	sdl_event= SDL_RegisterEvents(1);
+	
 	createMainButtons();
 }
 void Menu::Init(HWND* parent, HINSTANCE* hinstance, int parent_width, int parent_height)
@@ -23,6 +24,29 @@ void Menu::Init(HWND* parent, HINSTANCE* hinstance, int parent_width, int parent
 	hinst = hinstance;
 	i_parent_width = parent_width;
 	i_parent_height = parent_height;
+	wchar_t str[MAX_PATH];
+	if (SHGetSpecialFolderPathW(*parent, str, CSIDL_APPDATA, false))
+	{
+		OutputDebugString(str);
+		PathAppend(str, TEXT("stellerwave"));
+		//check if the directory exists if not create one
+		OutputDebugString(str);
+		PathAppend(str, TEXT("preferences.dat"));
+		//check if file exists if not create one
+		OutputDebugString(str);
+	}
+	else
+		OutputDebugString(L"\n\n not got jjfgdfgf\n\n");
+
+	/*if (SUCCEEDED(SHGetFolderPath(NULL,
+		CSIDL_PERSONAL | CSIDL_FLAG_CREATE,
+		NULL,
+		0,
+		str)))
+	{
+		PathAppend(str, TEXT("New Doc.txt"));
+		HANDLE hFile = CreateFile(szPath, ...);
+	}*/
 	//create the buttons
 	createMainButtons();
 }
@@ -86,19 +110,19 @@ void Menu::createMainButtons()
 	int i_progress_right_w= (rect.right - 20) / 2;
 	int i_progress_middle_w = 8;
 	int i_progress_h = 4;
-	h_play_progress_bar[0]= CreateWindow(WC_BUTTON, TEXT(""), WS_CHILD | WS_VISIBLE | BS_OWNERDRAW, i_x, i_y, i_progress_left_w, i_progress_h, *h_parent, (HMENU)i_play_progress_bar_id[0], *hinst, NULL);
+	h_play_progress_bar[0]= CreateWindow(WC_BUTTON, TEXT(""), WS_CHILD  | BS_OWNERDRAW, i_x, i_y, i_progress_left_w, i_progress_h, *h_parent, (HMENU)i_play_progress_bar_id[0], *hinst, NULL);
 	i_x += i_progress_left_w;
-	h_play_progress_bar[1] = CreateWindow(WC_BUTTON, TEXT(""), WS_CHILD | WS_VISIBLE | BS_OWNERDRAW, i_x+8, i_y, i_progress_right_w, i_progress_h, *h_parent, (HMENU)i_play_progress_bar_id[1], *hinst, NULL);
+	h_play_progress_bar[1] = CreateWindow(WC_BUTTON, TEXT(""), WS_CHILD | BS_OWNERDRAW, i_x+8, i_y, i_progress_right_w, i_progress_h, *h_parent, (HMENU)i_play_progress_bar_id[1], *hinst, NULL);
 	i_y -= 2;
-	h_play_progress_bar[2] = CreateWindow(WC_BUTTON, TEXT(""), WS_CHILD | WS_VISIBLE | BS_OWNERDRAW, i_x, i_y, i_progress_middle_w, i_progress_middle_w, *h_parent, (HMENU)i_play_progress_bar_id[2], *hinst, NULL);
+	h_play_progress_bar[2] = CreateWindow(WC_BUTTON, TEXT(""), WS_CHILD | BS_OWNERDRAW, i_x, i_y, i_progress_middle_w, i_progress_middle_w, *h_parent, (HMENU)i_play_progress_bar_id[2], *hinst, NULL);
 	//create the time labels
 	i_x = 10;
 	i_y -= 10;
 	int i_time_w = 50;
 	int i_time_h = 12;
-	h_play_time_txt[0]= CreateWindow(WC_STATIC, TEXT("00:00:00"), WS_CHILD | WS_VISIBLE | SS_LEFT , i_x, i_y, i_time_w, i_time_h, *h_parent, (HMENU)i_plat_time_txt_id[0], *hinst, NULL);
+	h_play_time_txt[0]= CreateWindow(WC_STATIC, TEXT("00:00:00"), WS_CHILD | SS_LEFT , i_x, i_y, i_time_w, i_time_h, *h_parent, (HMENU)i_plat_time_txt_id[0], *hinst, NULL);
 	i_x = rect.right - 10 - 50;
-	h_play_time_txt[1] = CreateWindow(WC_STATIC, TEXT("00:00:00"), WS_CHILD | WS_VISIBLE | SS_RIGHT, i_x, i_y, i_time_w, i_time_h, *h_parent, (HMENU)i_plat_time_txt_id[1], *hinst, NULL);
+	h_play_time_txt[1] = CreateWindow(WC_STATIC, TEXT("00:00:00"), WS_CHILD | SS_RIGHT, i_x, i_y, i_time_w, i_time_h, *h_parent, (HMENU)i_plat_time_txt_id[1], *hinst, NULL);
 	//create the window where sdl window will be attached to
 	//make it invisible
 	h_sdl_window = CreateWindow(WC_STATIC, TEXT(""), WS_CHILD | WS_VISIBLE, 0, 0, rect.right, i_y, *h_parent, (HMENU)i_sdl_window_id, *hinst, NULL);
@@ -470,20 +494,13 @@ void Menu::mainButtonClicked(int id,HWND h_clicked)
 
 			if (songs_to_play.size() == 1)
 			{
-				ft_play_song=std::async(launch::async, &Menu::play_song, this, songs_to_play.at(0));
-				update_stop_button(true);
-				ft_set_song_duration = std::async(launch::async, &Menu::set_song_duration, this);
-				ft_set_song_time_elapsed = std::async(launch::async, &Menu::update_song_time_elapsed, this);
+				play_song(songs_to_play.at(0));
 			}
 			else
 			{
 				wstring directory = songs_to_play.at(0);
 				wstring song_path=directory + L"\\" + songs_to_play.at(++song_status.song_number);
-				ft_play_song = std::async(launch::async, &Menu::play_song, this, song_path);
-				update_stop_button(true);
-				ft_set_song_duration = std::async(launch::async, &Menu::set_song_duration, this);
-				ft_set_song_time_elapsed = std::async(launch::async, &Menu::update_song_time_elapsed, this);
-
+				play_song(song_path);
 			}
 		}
 		else
@@ -512,14 +529,17 @@ void Menu::mainButtonClicked(int id,HWND h_clicked)
 		if (songs_to_play.size() > song_status.song_number + 1)
 		{
 			//first lets quit the current song
+			//we first call the song time tasks before ending the song to make sure the main thread doesn't hang
+			song_status.song_playing = SongStatus::SongPlaying::SONG_PLAY_EMPTY;
+			ft_set_song_time_elapsed.get();
+			ft_set_song_duration.get();
 			send_sdl_music_event(SdlMusicOptions::SDL_SONG_QUIT, 0);
-			ft_play_song.get();	
+			ft_play_song.get();			
+			
 			//now lets play the next song
 			wstring directory = songs_to_play.at(0);
 			wstring song_path = directory + L"\\" + songs_to_play.at(++song_status.song_number);
-			ft_play_song = std::async(launch::async, &Menu::play_song, this, song_path);
-			ft_set_song_duration = std::async(launch::async, &Menu::set_song_duration, this);
-			ft_set_song_time_elapsed = std::async(launch::async, &Menu::update_song_time_elapsed, this);
+			play_song(song_path);
 		}
 	}
 	else if (id == i_previous_btn_id)
@@ -527,14 +547,16 @@ void Menu::mainButtonClicked(int id,HWND h_clicked)
 		if (song_status.song_number - 1 > 0)
 		{
 			//first lets quit the current song
+			//we first call the song time tasks before ending the song to make sure the main thread doesn't hang
+			song_status.song_playing = SongStatus::SongPlaying::SONG_PLAY_EMPTY;
+			ft_set_song_time_elapsed.get();
+			ft_set_song_duration.get();
 			send_sdl_music_event(SdlMusicOptions::SDL_SONG_QUIT, 0);
 			ft_play_song.get();
 			//now lets play the next song
 			wstring directory = songs_to_play.at(0);
 			wstring song_path = directory + L"\\" + songs_to_play.at(--song_status.song_number);
-			ft_play_song = std::async(launch::async, &Menu::play_song, this, song_path);
-			ft_set_song_duration = std::async(launch::async, &Menu::set_song_duration, this);
-			ft_set_song_time_elapsed = std::async(launch::async, &Menu::update_song_time_elapsed, this);
+			play_song(song_path);
 		}
 	}
 	else if (id == i_stop_btn_id)
@@ -605,8 +627,7 @@ int Menu::send_sdl_music_event(SdlMusicOptions options, void* seek_fraction)
 			event.user.data1 = seek_fraction;
 			i_return = SDL_PushEvent(&event);
 		}
-		else
-			OutputDebugString(L"wrong event");
+		
 	}
 	break;
 	}
@@ -618,11 +639,29 @@ void Menu::play_song(wstring song_path)
 	using std::async;
 	using std::launch;
 
+	for (int c = 0; c <= 2; c++)
+		ShowWindow(h_play_progress_bar[c], true);
+	for (int c = 0; c <= 1; c++)
+		ShowWindow(h_play_time_txt[c], true);
+
+	ft_play_song = std::async(launch::async, &Menu::play_song_task, this, song_path);
+	if (i_which_main_btn_pressed != i_previous_btn_id && i_which_main_btn_pressed != i_next_btn_id)
+		update_stop_button(true);
+
+	ft_set_song_duration = std::async(launch::async, &Menu::set_song_duration_task, this);
+	ft_set_song_time_elapsed = std::async(launch::async, &Menu::update_song_time_elapsed_task, this);
+}
+void Menu::play_song_task(wstring song_path)
+{
+	using std::future;
+	using std::async;
+	using std::launch;
+
 	Ffplay ffplay;
 	string input{ song_path.begin(),song_path.end() };
 	//lets plays the song
 	song_status.song_playing = SongStatus::SongPlaying::SONG_PLAY_PLAYING;	
-	ffplay.play_song(input, h_sdl_window);
+	ffplay.play_song(input, h_sdl_window, VideoState::SHOW_MODE_WAVES);
 	//the song is not playing anymore
 	song_status.song_playing = SongStatus::SongPlaying::SONG_PLAY_EMPTY;
 }
@@ -651,7 +690,7 @@ void Menu::exit()
 	}
 	GdiplusShutdown(gdiplusToken);
 }
-void Menu::set_song_duration()
+void Menu::set_song_duration_task()
 {
 	int hours, mins, secs, us;
 	int64_t duration, time;
@@ -659,6 +698,8 @@ void Menu::set_song_duration()
 	wchar_t start_time[64];
 	for (;;)
 	{
+		if (song_status.song_playing == SongStatus::SongPlaying::SONG_PLAY_EMPTY)
+			break;
 		if (Ffplay::is_song_duration_set())
 		{
 			duration = Ffplay::get_song_duration();
@@ -689,12 +730,11 @@ void Menu::set_song_duration()
 			break;
 		}
 	}
-	
 }
 /*
 this functions get the time the song has been playing and updates it on the GUI
 */
-void Menu::update_song_time_elapsed()
+void Menu::update_song_time_elapsed_task()
 {
 	int64_t duration, time;
 	double total_secs = 0;
@@ -771,6 +811,10 @@ void Menu::close_song_gui()
 	SetWindowText(h_play_time_txt[1], L"00:00:00");
 	//ft_set_song_time_elapsed.get();
 	SetWindowText(h_play_time_txt[0], L"00:00:00");
+	for (int c = 0; c <= 2; c++)
+		ShowWindow(h_play_progress_bar[c], false);
+	for (int c = 0; c <= 1; c++)
+		ShowWindow(h_play_time_txt[c], false);
 
 }
 void Menu::progress_bar_clicked(HWND h_clicked)
@@ -781,6 +825,7 @@ void Menu::progress_bar_clicked(HWND h_clicked)
 	RECT rect_left, rect_middle, rect_right, rect_parent;
 	int total_width = 0;
 	double* frac = (double*)malloc(sizeof(double));
+	
 
 	GetCursorPos(&point);
 	ScreenToClient(GetParent(h_clicked), &point);
