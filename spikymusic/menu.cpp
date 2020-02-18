@@ -12,7 +12,7 @@ Menu::Menu(HWND* parent, HINSTANCE* hinstance,int parent_width,int parent_height
 {
 	//initialize GDI+
 	GdiplusStartup(&gdiplusToken, &gdiplusStartupInput, NULL);
-	sdl_event= SDL_RegisterEvents(1);
+	//sdl_event= SDL_RegisterEvents(1);
 	
 	createMainButtons();
 }
@@ -24,31 +24,75 @@ void Menu::Init(HWND* parent, HINSTANCE* hinstance, int parent_width, int parent
 	hinst = hinstance;
 	i_parent_width = parent_width;
 	i_parent_height = parent_height;
-	wchar_t str[MAX_PATH];
-	if (SHGetSpecialFolderPathW(*parent, str, CSIDL_APPDATA, false))
-	{
-		OutputDebugString(str);
-		PathAppend(str, TEXT("stellerwave"));
-		//check if the directory exists if not create one
-		OutputDebugString(str);
-		PathAppend(str, TEXT("preferences.dat"));
-		//check if file exists if not create one
-		OutputDebugString(str);
-	}
-	else
-		OutputDebugString(L"\n\n not got jjfgdfgf\n\n");
-
-	/*if (SUCCEEDED(SHGetFolderPath(NULL,
-		CSIDL_PERSONAL | CSIDL_FLAG_CREATE,
-		NULL,
-		0,
-		str)))
-	{
-		PathAppend(str, TEXT("New Doc.txt"));
-		HANDLE hFile = CreateFile(szPath, ...);
-	}*/
+	
+	check_config_files(*parent);
 	//create the buttons
 	createMainButtons();
+}
+/*
+check if configuration and preferences file are available
+if not create them
+*/
+void Menu::check_config_files(HWND parent)
+{
+	bool directory_exists{ false }, file_exists{ false };
+	wchar_t str[MAX_PATH];
+
+	if (SHGetSpecialFolderPathW(parent, str, CSIDL_APPDATA, false))
+	{
+		PathAppend(str, TEXT("stellerwave"));
+		if (PathFileExistsW(str))
+		{
+			directory_exists = true;
+		}
+		else
+		{
+			//If lpSecurityAttributes is NULL, the directory gets a default security descriptor. 
+			//The ACLs in the default security descriptor for a directory are inherited from its parent directory
+			if (CreateDirectory(str, NULL))
+			{
+				directory_exists = true;
+			}
+			else
+				OutputDebugStringW((LPCWSTR)GetLastError());
+		}
+		if (directory_exists)
+		{
+			PathAppend(str, TEXT("prefs.dat"));
+			if (PathFileExistsW(str))
+			{
+				file_exists = true;
+			}
+			else
+			{
+				h_file_prefs = CreateFile(str,                // name of the write
+					GENERIC_READ | GENERIC_WRITE,          // open for writing
+					0,                      // do not share
+					NULL,                   // default security
+					CREATE_NEW,             // create new file only
+					FILE_ATTRIBUTE_HIDDEN,  // hidden file
+					NULL);
+				if (h_file_prefs == INVALID_HANDLE_VALUE)
+					OutputDebugStringW((LPCWSTR)GetLastError());
+				else
+				{
+					CloseHandle(h_file_prefs);
+					file_exists = true;
+				}
+			}
+		}
+		if (file_exists)
+		{
+			h_file_prefs = CreateFile(str,                // name of the write
+				GENERIC_READ | GENERIC_WRITE,          // open for writing
+				FILE_SHARE_WRITE | FILE_SHARE_READ,                      // do not share
+				NULL,                   // default security
+				OPEN_EXISTING,             // create new file only
+				FILE_ATTRIBUTE_HIDDEN,  // hidden file
+				NULL);
+		}
+			
+	}
 }
 /*
 this function draws the main menu buttons at the bottom of the screen. We draw the buttons starting with the bottom left heading rightwards
@@ -688,7 +732,6 @@ void Menu::exit()
 	{
 		send_sdl_music_event(SdlMusicOptions::SDL_SONG_QUIT, 0);
 	}
-	GdiplusShutdown(gdiplusToken);
 }
 void Menu::set_song_duration_task()
 {
@@ -855,7 +898,28 @@ void Menu::progress_bar_clicked(HWND h_clicked)
 
 	send_sdl_music_event(SdlMusicOptions::SDL_SONG_SEEK, frac);
 }
+void Menu::write_to_prefs_file()
+{
+	if (h_file_prefs == INVALID_HANDLE_VALUE)
+		return;
+	char DataBuffer[] = "This is some test data to write to the file2.";
+	DWORD dwBytesToWrite = (DWORD)strlen(DataBuffer);
+	DWORD dwBytesWritten = 0;
+	BOOL bErrorFlag = FALSE;
+
+	bErrorFlag = WriteFile(
+		h_file_prefs,           // open file handle
+		DataBuffer,      // start of data to write
+		dwBytesToWrite,  // number of bytes to write
+		&dwBytesWritten, // number of bytes that were written
+		NULL);
+	if (!bErrorFlag)
+		OutputDebugStringW((LPCWSTR)GetLastError());
+	
+}
 
 Menu::~Menu()
 {
+	GdiplusShutdown(gdiplusToken);
+	CloseHandle(h_file_prefs);
 }

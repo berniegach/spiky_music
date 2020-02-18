@@ -16,6 +16,8 @@
 #include <Shlobj.h>
 #include <ShlObj_core.h>
 #include "Shlwapi.h"
+#include <fstream>
+#include <boost/algorithm/string/replace.hpp>
 
 #pragma comment (lib,"Gdiplus.lib")
 #pragma comment(lib,"SDL2.lib")
@@ -26,12 +28,18 @@ using namespace Gdiplus;
 using std::array;
 using std::vector;
 using std::wstring;
+using std::fstream;
+using std::ofstream;
+using std::ifstream;
+using std::ios;
+
 class Menu
 {
 public:
 	Menu();
 	Menu(HWND* parent, HINSTANCE* hinstance, int parent_width, int parent_height);
 	void Init(HWND* parent, HINSTANCE* hinstance, int parent_width, int parent_height);
+	void check_config_files(HWND parent);
 	void createMainButtons();
 	void drawButtons(LPDRAWITEMSTRUCT pdis);
 	void windowSizeChanged(HWND* hwnd);
@@ -48,6 +56,7 @@ public:
 	void displayLastErrorDebug(LPTSTR lpSzFunction);
 	void close_song_gui();
 	void progress_bar_clicked(HWND h_clicked);
+	void write_to_prefs_file();
 	~Menu();
 private:
 	GdiplusStartupInput gdiplusStartupInput;
@@ -61,6 +70,7 @@ private:
 		int song_number = 0;
 	} song_status;
 	vector<wstring>songs_to_play;
+	HANDLE h_file_prefs{};
 		
 	//windows handles
 	HWND* h_parent;
