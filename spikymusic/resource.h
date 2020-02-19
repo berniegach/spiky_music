@@ -53,7 +53,6 @@
 #define IDB_PAUSE_W_PRESSED             167
 #define IDB_STOP_DISABLED               168
 #define IDB_STOP_NORMAL                 169
-#define IDB_BITMAP1                     170
 #define IDB_STOP_PRESSED                170
 #define ID_FILE_ADDFAVORITES            32771
 #define ID_FILE_CLEARFAVORITES          32772
@@ -73,6 +72,7 @@
 #define ID_SETTINGS_ACCOUNT             32786
 #define ID_Menu                         32787
 #define ID_HELP_CHECKFORUPDATES         32788
+#define ID_GRAPHICS_SPECTRUM            32789
 #define IDC_STATIC                      -1
 
 // Next default values for new objects
@@ -81,7 +81,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NO_MFC                     1
 #define _APS_NEXT_RESOURCE_VALUE        171
-#define _APS_NEXT_COMMAND_VALUE         32789
+#define _APS_NEXT_COMMAND_VALUE         32790
 #define _APS_NEXT_CONTROL_VALUE         1000
 #define _APS_NEXT_SYMED_VALUE           110
 #endif

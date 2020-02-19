@@ -136,6 +136,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
 	static int i_main_screen_width, i_main_screen_height;
+	HMENU main_menu;
 	switch (message)
 	{
 		case WM_CREATE:
@@ -155,6 +156,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				menu.mainButtonClicked(wmId, h_clicked);
 			else
 			{
+				main_menu = GetMenu(hWnd);
 				// Parse the menu selections:
 				switch (wmId)
 				{
@@ -164,6 +166,16 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 					case IDM_EXIT:
 						DestroyWindow(hWnd);
 						break;
+					case ID_GRAPHICS_BLANK:
+					case ID_GRAPHICS_ILLUSTRATIONS:
+					case ID_GRAPHICS_LOGO:
+					case ID_GRAPHICS_MEDIAART:
+					case ID_GRAPHICS_SOUNDWAVE:
+					case ID_GRAPHICS_TASTEBUBBLE:
+					case ID_GRAPHICS_SPECTRUM:
+						menu.menu_header_clicked(wmId, main_menu);
+						break;
+
 					default:
 						return DefWindowProc(hWnd, message, wParam, lParam);
 				}

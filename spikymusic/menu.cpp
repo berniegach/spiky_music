@@ -6,6 +6,10 @@
 Menu::Menu()
 {
 	//default constructor
+	//initialize GDI+
+	GdiplusStartup(&gdiplusToken, &gdiplusStartupInput, NULL);
+	s_config_file.playback_show_mode = ConfigFile::PlayBackShowMode::SHOW_MODE_WAVES;
+	s_config_file.some_value = ConfigFile::SomeValue::THREE;
 }
 Menu::Menu(HWND* parent, HINSTANCE* hinstance,int parent_width,int parent_height)
 	:h_parent(parent),	hinst(hinstance),i_parent_width(parent_width),i_parent_height(parent_height)
@@ -13,19 +17,21 @@ Menu::Menu(HWND* parent, HINSTANCE* hinstance,int parent_width,int parent_height
 	//initialize GDI+
 	GdiplusStartup(&gdiplusToken, &gdiplusStartupInput, NULL);
 	//sdl_event= SDL_RegisterEvents(1);
+	s_config_file.playback_show_mode = ConfigFile::PlayBackShowMode::SHOW_MODE_WAVES;
+	s_config_file.some_value = ConfigFile::SomeValue::THREE;
 	
 	createMainButtons();
 }
 void Menu::Init(HWND* parent, HINSTANCE* hinstance, int parent_width, int parent_height)
 {
-	//initialize GDI+
-	GdiplusStartup(&gdiplusToken, &gdiplusStartupInput, NULL);
 	h_parent = parent;
 	hinst = hinstance;
 	i_parent_width = parent_width;
 	i_parent_height = parent_height;
 	
 	check_config_files(*parent);
+	read_from_prefs_file();
+	update_header_menu_items();
 	//create the buttons
 	createMainButtons();
 }
@@ -36,12 +42,12 @@ if not create them
 void Menu::check_config_files(HWND parent)
 {
 	bool directory_exists{ false }, file_exists{ false };
-	wchar_t str[MAX_PATH];
+	HANDLE h_file_prefs{};
 
-	if (SHGetSpecialFolderPathW(parent, str, CSIDL_APPDATA, false))
+	if (SHGetSpecialFolderPathW(parent, w_config_file_path, CSIDL_APPDATA, false))
 	{
-		PathAppend(str, TEXT("stellerwave"));
-		if (PathFileExistsW(str))
+		PathAppend(w_config_file_path, TEXT("stellerwave"));
+		if (PathFileExistsW(w_config_file_path))
 		{
 			directory_exists = true;
 		}
@@ -49,7 +55,7 @@ void Menu::check_config_files(HWND parent)
 		{
 			//If lpSecurityAttributes is NULL, the directory gets a default security descriptor. 
 			//The ACLs in the default security descriptor for a directory are inherited from its parent directory
-			if (CreateDirectory(str, NULL))
+			if (CreateDirectory(w_config_file_path, NULL))
 			{
 				directory_exists = true;
 			}
@@ -58,19 +64,19 @@ void Menu::check_config_files(HWND parent)
 		}
 		if (directory_exists)
 		{
-			PathAppend(str, TEXT("prefs.dat"));
-			if (PathFileExistsW(str))
+			PathAppend(w_config_file_path, TEXT("prefs.dat"));
+			if (PathFileExistsW(w_config_file_path))
 			{
 				file_exists = true;
 			}
 			else
 			{
-				h_file_prefs = CreateFile(str,                // name of the write
+				h_file_prefs = CreateFile(w_config_file_path,                // name of the write
 					GENERIC_READ | GENERIC_WRITE,          // open for writing
 					0,                      // do not share
 					NULL,                   // default security
 					CREATE_NEW,             // create new file only
-					FILE_ATTRIBUTE_HIDDEN,  // hidden file
+					FILE_ATTRIBUTE_HIDDEN ,  // hidden file
 					NULL);
 				if (h_file_prefs == INVALID_HANDLE_VALUE)
 					OutputDebugStringW((LPCWSTR)GetLastError());
@@ -78,18 +84,16 @@ void Menu::check_config_files(HWND parent)
 				{
 					CloseHandle(h_file_prefs);
 					file_exists = true;
+					//since weve just created the file, it is empty with no defaults so we need to add them 
+					s_config_file.changed = true;
 				}
 			}
 		}
 		if (file_exists)
 		{
-			h_file_prefs = CreateFile(str,                // name of the write
-				GENERIC_READ | GENERIC_WRITE,          // open for writing
-				FILE_SHARE_WRITE | FILE_SHARE_READ,                      // do not share
-				NULL,                   // default security
-				OPEN_EXISTING,             // create new file only
-				FILE_ATTRIBUTE_HIDDEN,  // hidden file
-				NULL);
+			
+			if (s_config_file.changed)
+				write_to_prefs_file();
 		}
 			
 	}
@@ -705,7 +709,7 @@ void Menu::play_song_task(wstring song_path)
 	string input{ song_path.begin(),song_path.end() };
 	//lets plays the song
 	song_status.song_playing = SongStatus::SongPlaying::SONG_PLAY_PLAYING;	
-	ffplay.play_song(input, h_sdl_window, VideoState::SHOW_MODE_WAVES);
+	ffplay.play_song(input, h_sdl_window, (VideoState::ShowMode) s_config_file.playback_show_mode);
 	//the song is not playing anymore
 	song_status.song_playing = SongStatus::SongPlaying::SONG_PLAY_EMPTY;
 }
@@ -900,26 +904,159 @@ void Menu::progress_bar_clicked(HWND h_clicked)
 }
 void Menu::write_to_prefs_file()
 {
+	HANDLE h_file_prefs{};
+	h_file_prefs = CreateFile(w_config_file_path,                // name of the write
+		GENERIC_WRITE,          // open for writing
+		FILE_SHARE_WRITE ,                      // do not share
+		NULL,                   // default security
+		OPEN_EXISTING,             // create new file only
+		FILE_ATTRIBUTE_HIDDEN,  // hidden file
+		NULL);
+
+	if (h_file_prefs == INVALID_HANDLE_VALUE || !s_config_file.changed)
+		return;
+
+	char data_buf[256]; 
+	sprintf_s(data_buf, "%s\t%d\n%s\t%d", "PlayBackShowMode", s_config_file.playback_show_mode, "SomeValue", s_config_file.some_value);
+	
+	DWORD dw_bytes_to_write = (DWORD)strlen(data_buf);
+	DWORD dw_bytes_written = 0;
+	bool b_error_flag = false;
+
+	b_error_flag = WriteFile(
+		h_file_prefs,           // open file handle
+		data_buf,      // start of data to write
+		dw_bytes_to_write,  // number of bytes to write
+		&dw_bytes_written, // number of bytes that were written
+		NULL);
+	if (!b_error_flag)
+		displayLastErrorDebug((LPTSTR)L"file write");
+	CloseHandle(h_file_prefs);	
+}
+void Menu::read_from_prefs_file()
+{
+	const int buffer_size = 256;
+	HANDLE h_file_prefs{};
+	h_file_prefs = CreateFile(w_config_file_path,                // name of the write
+		GENERIC_READ ,          // open for writing
+		FILE_SHARE_READ,                      // do not share
+		NULL,                   // default security
+		OPEN_EXISTING,             // create new file only
+		FILE_ATTRIBUTE_HIDDEN,  // hidden file
+		NULL);
+
 	if (h_file_prefs == INVALID_HANDLE_VALUE)
 		return;
-	char DataBuffer[] = "This is some test data to write to the file2.";
-	DWORD dwBytesToWrite = (DWORD)strlen(DataBuffer);
-	DWORD dwBytesWritten = 0;
-	BOOL bErrorFlag = FALSE;
-
-	bErrorFlag = WriteFile(
-		h_file_prefs,           // open file handle
-		DataBuffer,      // start of data to write
-		dwBytesToWrite,  // number of bytes to write
-		&dwBytesWritten, // number of bytes that were written
-		NULL);
-	if (!bErrorFlag)
-		OutputDebugStringW((LPCWSTR)GetLastError());
-	
+	char data_buf[buffer_size];
+	DWORD dw_bytes_read = 0;
+	bool b_error_flag = false;
+	//the max bytes read need to be less 1 from buffer size to preserve room for the null character
+	b_error_flag = ReadFile(h_file_prefs, data_buf, buffer_size - 1, &dw_bytes_read, NULL);
+	if (dw_bytes_read > 0 && dw_bytes_read <= buffer_size - 1)
+	{
+		data_buf[dw_bytes_read] = '\0'; // NULL character
+	}
+	if (b_error_flag)
+	{
+		char* token,* next_token, * inner_token, * inner_next_token;
+		int count = 0, inner_count = 0;
+		token=strtok_s(data_buf, "\n", &next_token);
+		while (token) 
+		{
+			inner_token = strtok_s(token, "\t", &inner_next_token);
+			while (inner_token)
+			{
+				if (inner_count == 1)
+				{
+					if (count == 0)
+					{
+						//convert the value straight to int
+						char val = atoi(inner_token);
+						s_config_file.playback_show_mode = (ConfigFile::PlayBackShowMode) val;
+					}
+				}
+				inner_token = strtok_s(NULL, "\t", &inner_next_token);
+				inner_count += 1;
+			}
+			token = strtok_s(NULL, "\n", &next_token);
+			count += 1;
+		}
+	}
+	CloseHandle(h_file_prefs);
 }
-
+void Menu::update_header_menu_items()
+{
+	HMENU main_menu = GetMenu(*h_parent); 
+	switch ( s_config_file.playback_show_mode)
+	{
+		//graphics menu
+	case ConfigFile::PlayBackShowMode::SHOW_MODE_WAVES:
+		CheckMenuItem(main_menu, ID_GRAPHICS_SOUNDWAVE, MF_CHECKED);
+		i_checked_graphics_menu = ID_GRAPHICS_SOUNDWAVE;
+		break;
+	case ConfigFile::PlayBackShowMode::SHOW_MODE_VIDEO:
+		CheckMenuItem(main_menu, ID_GRAPHICS_MEDIAART, MF_CHECKED);
+		i_checked_graphics_menu = ID_GRAPHICS_MEDIAART;
+		break;
+	case ConfigFile::PlayBackShowMode::SHOW_MODE_RDFT:
+		CheckMenuItem(main_menu, ID_GRAPHICS_SPECTRUM, MF_CHECKED);
+		i_checked_graphics_menu = ID_GRAPHICS_SPECTRUM;
+		break;
+	case ConfigFile::PlayBackShowMode::SHOW_MODE_NONE:
+		CheckMenuItem(main_menu, ID_GRAPHICS_BLANK, MF_CHECKED);
+		i_checked_graphics_menu = ID_GRAPHICS_BLANK;
+		break;
+	default:
+		CheckMenuItem(main_menu, ID_GRAPHICS_MEDIAART, MF_CHECKED);
+		i_checked_graphics_menu = ID_GRAPHICS_MEDIAART;
+		break;
+	}
+}
+void Menu::menu_header_clicked(int id, HMENU parent_menu)
+{
+	
+	bool graphics = false;
+	switch (id)
+	{
+		//graphics menu
+	case ID_GRAPHICS_BLANK:
+		s_config_file.playback_show_mode = ConfigFile::PlayBackShowMode::SHOW_MODE_NONE;
+		graphics = true;
+		break;
+	case ID_GRAPHICS_ILLUSTRATIONS:
+		//s_config_file.playback_show_mode = ConfigFile::PlayBackShowMode::SHOW_MODE_NONE;
+		//graphics = true;
+		break;
+	case ID_GRAPHICS_LOGO:
+		s_config_file.playback_show_mode = ConfigFile::PlayBackShowMode::SHOW_MODE_NONE;
+		graphics = true;
+		break;
+	case ID_GRAPHICS_MEDIAART:
+		s_config_file.playback_show_mode = ConfigFile::PlayBackShowMode::SHOW_MODE_VIDEO;
+		graphics = true;
+		break;
+	case ID_GRAPHICS_SOUNDWAVE:
+		s_config_file.playback_show_mode = ConfigFile::PlayBackShowMode::SHOW_MODE_WAVES;
+		graphics = true;
+		break;
+	case ID_GRAPHICS_TASTEBUBBLE:
+		//s_config_file.playback_show_mode = ConfigFile::PlayBackShowMode::SHOW_MODE_NONE;
+		//graphics = true;
+		break;
+	case ID_GRAPHICS_SPECTRUM:
+		s_config_file.playback_show_mode = ConfigFile::PlayBackShowMode::SHOW_MODE_RDFT;
+		graphics = true;
+		break;
+	}
+	if (graphics)
+	{
+		CheckMenuItem(parent_menu, i_checked_graphics_menu, MF_UNCHECKED);
+		CheckMenuItem(parent_menu, id, MF_CHECKED);
+		i_checked_graphics_menu = id;
+	}
+}
 Menu::~Menu()
 {
 	GdiplusShutdown(gdiplusToken);
-	CloseHandle(h_file_prefs);
+	write_to_prefs_file();
 }

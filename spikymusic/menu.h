@@ -57,6 +57,9 @@ public:
 	void close_song_gui();
 	void progress_bar_clicked(HWND h_clicked);
 	void write_to_prefs_file();
+	void read_from_prefs_file();
+	void update_header_menu_items();
+	void menu_header_clicked(int id, HMENU parent_menu);
 	~Menu();
 private:
 	GdiplusStartupInput gdiplusStartupInput;
@@ -70,7 +73,7 @@ private:
 		int song_number = 0;
 	} song_status;
 	vector<wstring>songs_to_play;
-	HANDLE h_file_prefs{};
+	wchar_t w_config_file_path[MAX_PATH];
 		
 	//windows handles
 	HWND* h_parent;
@@ -137,6 +140,15 @@ private:
 	std::future<void> ft_play_song;
 	std::future<void> ft_set_song_duration;
 	std::future<void> ft_set_song_time_elapsed;
+
+	struct ConfigFile
+	{
+		bool changed{ false };
+		enum class PlayBackShowMode{ SHOW_MODE_NONE = -1, SHOW_MODE_VIDEO = 0, SHOW_MODE_WAVES, SHOW_MODE_RDFT, SHOW_MODE_NB } playback_show_mode;
+		enum class SomeValue { ONE, TWO, THREE } some_value;
+	};
+	ConfigFile s_config_file;
+	int i_checked_graphics_menu = 0;
 };
 #endif
 
