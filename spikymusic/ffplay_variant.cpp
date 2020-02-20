@@ -28,6 +28,7 @@ void Ffplay::play_song(string file, HWND parent, VideoState::ShowMode my_show_mo
     VideoState* is;
     input_filename = file;
     show_mode = (Ffplay::ShowMode)my_show_mode;
+    autoexit = 1;
     /* register all codecs, demux and protocols */
 #if CONFIG_AVDEVICE
     avdevice_register_all();

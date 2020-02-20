@@ -11,7 +11,7 @@ Menu::Menu()
 	s_config_file.playback_show_mode = ConfigFile::PlayBackShowMode::SHOW_MODE_WAVES;
 	s_config_file.some_value = ConfigFile::SomeValue::THREE;
 }
-Menu::Menu(HWND* parent, HINSTANCE* hinstance,int parent_width,int parent_height)
+Menu::Menu(HWND parent, HINSTANCE* hinstance,int parent_width,int parent_height)
 	:h_parent(parent),	hinst(hinstance),i_parent_width(parent_width),i_parent_height(parent_height)
 {
 	//initialize GDI+
@@ -22,14 +22,14 @@ Menu::Menu(HWND* parent, HINSTANCE* hinstance,int parent_width,int parent_height
 	
 	createMainButtons();
 }
-void Menu::Init(HWND* parent, HINSTANCE* hinstance, int parent_width, int parent_height)
+void Menu::Init(HWND parent, HINSTANCE* hinstance, int parent_width, int parent_height)
 {
 	h_parent = parent;
 	hinst = hinstance;
 	i_parent_width = parent_width;
 	i_parent_height = parent_height;
 	
-	check_config_files(*parent);
+	check_config_files(parent);
 	read_from_prefs_file();
 	update_header_menu_items();
 	//create the buttons
@@ -106,7 +106,7 @@ void Menu::createMainButtons()
 	int i_menu_bar_height = GetSystemMetrics(SM_CYMENU);
 	int i_title_bar_height= GetSystemMetrics(SM_CXSCREEN);
 	RECT rect{};
-	GetClientRect(*h_parent, &rect);	
+	GetClientRect(h_parent, &rect);	
 
 	int i_btn_width=30, i_btn_height = 30;
 	int i_distance_between = 10;
@@ -124,7 +124,7 @@ void Menu::createMainButtons()
 	//create the leftmost buttons
 	for (int c = 0; c <= 7; c++)
 	{
-		*hwnds[c] = CreateWindow(WC_BUTTON, TEXT(""), WS_CHILD | WS_VISIBLE | BS_OWNERDRAW, i_x, i_y, i_btn_width, i_btn_height, *h_parent, (HMENU)ids[c], *hinst, NULL);
+		*hwnds[c] = CreateWindow(WC_BUTTON, TEXT(""), WS_CHILD | WS_VISIBLE | BS_OWNERDRAW, i_x, i_y, i_btn_width, i_btn_height, h_parent, (HMENU)ids[c], *hinst, NULL);
 		i_x += i_btn_width + i_distance_between;
 	}
 	//create the center buttons
@@ -133,20 +133,20 @@ void Menu::createMainButtons()
 	//lets take advantage that we have the center to create the stop button which is left of the center buttons
 	//the stop button starts as disbaled since we dont have a song playing
 	long i_x_stop = i_x - (i_btn_width + i_distance_between );
-	h_stop_btn = CreateWindow(WC_BUTTON, TEXT(""), WS_CHILD | WS_VISIBLE | BS_OWNERDRAW, i_x_stop, i_y, i_btn_width, i_btn_height, *h_parent, (HMENU)i_stop_btn_id, *hinst, NULL);
+	h_stop_btn = CreateWindow(WC_BUTTON, TEXT(""), WS_CHILD | WS_VISIBLE | BS_OWNERDRAW, i_x_stop, i_y, i_btn_width, i_btn_height, h_parent, (HMENU)i_stop_btn_id, *hinst, NULL);
 	EnableWindow(h_stop_btn, false);
 	//create the three center buttons
 	//previous, play, and next
 	for (int c = 8; c <= 10; c++)
 	{
-		*hwnds[c] = CreateWindow(WC_BUTTON, TEXT(""), WS_CHILD | WS_VISIBLE | BS_OWNERDRAW, i_x, i_y, i_btn_width, i_btn_height, *h_parent, (HMENU)ids[c], *hinst, NULL);
+		*hwnds[c] = CreateWindow(WC_BUTTON, TEXT(""), WS_CHILD | WS_VISIBLE | BS_OWNERDRAW, i_x, i_y, i_btn_width, i_btn_height, h_parent, (HMENU)ids[c], *hinst, NULL);
 		i_x += i_btn_width + i_distance_between;
 	}
 	//create the rightmost buttons
 	i_x = rect.right - i_btn_width - 5;
 	for (int c = 13; c >= 11; c--)
 	{
-		*hwnds[c] = CreateWindow(WC_BUTTON, TEXT(""), WS_CHILD | WS_VISIBLE | BS_OWNERDRAW, i_x, i_y, i_btn_width, i_btn_height, *h_parent, (HMENU)ids[c], *hinst, NULL);
+		*hwnds[c] = CreateWindow(WC_BUTTON, TEXT(""), WS_CHILD | WS_VISIBLE | BS_OWNERDRAW, i_x, i_y, i_btn_width, i_btn_height, h_parent, (HMENU)ids[c], *hinst, NULL);
 		i_x -= i_btn_width + i_distance_between;
 	}
 	//create the progress bar
@@ -158,31 +158,30 @@ void Menu::createMainButtons()
 	int i_progress_right_w= (rect.right - 20) / 2;
 	int i_progress_middle_w = 8;
 	int i_progress_h = 4;
-	h_play_progress_bar[0]= CreateWindow(WC_BUTTON, TEXT(""), WS_CHILD  | BS_OWNERDRAW, i_x, i_y, i_progress_left_w, i_progress_h, *h_parent, (HMENU)i_play_progress_bar_id[0], *hinst, NULL);
+	h_play_progress_bar[0]= CreateWindow(WC_BUTTON, TEXT(""), WS_CHILD  | BS_OWNERDRAW, i_x, i_y, i_progress_left_w, i_progress_h, h_parent, (HMENU)i_play_progress_bar_id[0], *hinst, NULL);
 	i_x += i_progress_left_w;
-	h_play_progress_bar[1] = CreateWindow(WC_BUTTON, TEXT(""), WS_CHILD | BS_OWNERDRAW, i_x+8, i_y, i_progress_right_w, i_progress_h, *h_parent, (HMENU)i_play_progress_bar_id[1], *hinst, NULL);
+	h_play_progress_bar[1] = CreateWindow(WC_BUTTON, TEXT(""), WS_CHILD | BS_OWNERDRAW, i_x+8, i_y, i_progress_right_w, i_progress_h, h_parent, (HMENU)i_play_progress_bar_id[1], *hinst, NULL);
 	i_y -= 2;
-	h_play_progress_bar[2] = CreateWindow(WC_BUTTON, TEXT(""), WS_CHILD | BS_OWNERDRAW, i_x, i_y, i_progress_middle_w, i_progress_middle_w, *h_parent, (HMENU)i_play_progress_bar_id[2], *hinst, NULL);
+	h_play_progress_bar[2] = CreateWindow(WC_BUTTON, TEXT(""), WS_CHILD | BS_OWNERDRAW, i_x, i_y, i_progress_middle_w, i_progress_middle_w, h_parent, (HMENU)i_play_progress_bar_id[2], *hinst, NULL);
 	//create the time labels
 	i_x = 10;
 	i_y -= 10;
 	int i_time_w = 50;
 	int i_time_h = 12;
-	h_play_time_txt[0]= CreateWindow(WC_STATIC, TEXT("00:00:00"), WS_CHILD | SS_LEFT , i_x, i_y, i_time_w, i_time_h, *h_parent, (HMENU)i_plat_time_txt_id[0], *hinst, NULL);
+	h_play_time_txt[0]= CreateWindow(WC_STATIC, TEXT("00:00:00"), WS_CHILD | SS_LEFT , i_x, i_y, i_time_w, i_time_h, h_parent, (HMENU)i_plat_time_txt_id[0], *hinst, NULL);
 	i_x = rect.right - 10 - 50;
-	h_play_time_txt[1] = CreateWindow(WC_STATIC, TEXT("00:00:00"), WS_CHILD | SS_RIGHT, i_x, i_y, i_time_w, i_time_h, *h_parent, (HMENU)i_plat_time_txt_id[1], *hinst, NULL);
+	h_play_time_txt[1] = CreateWindow(WC_STATIC, TEXT("00:00:00"), WS_CHILD | SS_RIGHT, i_x, i_y, i_time_w, i_time_h, h_parent, (HMENU)i_plat_time_txt_id[1], *hinst, NULL);
 	//create the window where sdl window will be attached to
 	//make it invisible
-	h_sdl_window = CreateWindow(WC_STATIC, TEXT(""), WS_CHILD | WS_VISIBLE, 0, 0, rect.right, i_y, *h_parent, (HMENU)i_sdl_window_id, *hinst, NULL);
+	h_sdl_window = CreateWindow(WC_STATIC, TEXT(""), WS_CHILD | WS_VISIBLE, 0, 0, rect.right, i_y, h_parent, (HMENU)i_sdl_window_id, *hinst, NULL);
 	ShowWindow(h_sdl_window, false);
-	//ffplay.init(h_sdl_window);
 	//check if the user has favorites added. if not show this button
 	int i_big_fav_add_w = 100;
 	i_x = rect.right / 2 - i_big_fav_add_w / 2;
 	i_y = rect.bottom / 2 - i_big_fav_add_w / 2;
 	bool has_favorites = false;
 	if(!has_favorites)
-		h_favorites_add_large_btn= CreateWindow(WC_BUTTON, TEXT(""), WS_CHILD | WS_VISIBLE | BS_OWNERDRAW, i_x, i_y, i_big_fav_add_w, i_big_fav_add_w, *h_parent, (HMENU)i_favorites_add_large_btn_id, *hinst, NULL);
+		h_favorites_add_large_btn= CreateWindow(WC_BUTTON, TEXT(""), WS_CHILD | WS_VISIBLE | BS_OWNERDRAW, i_x, i_y, i_big_fav_add_w, i_big_fav_add_w, h_parent, (HMENU)i_favorites_add_large_btn_id, *hinst, NULL);
 	
 }
 void Menu::drawButtons(LPDRAWITEMSTRUCT pdis)
@@ -609,12 +608,7 @@ void Menu::mainButtonClicked(int id,HWND h_clicked)
 	}
 	else if (id == i_stop_btn_id)
 	{
-		send_sdl_music_event(SdlMusicOptions::SDL_SONG_QUIT, 0);
-		ft_play_song.get();
-		update_stop_button(false);
-		songs_to_play.clear();
-		song_status.song_number = 0;
-		close_song_gui();
+		exit_playback();
 	}
 	else if (id == i_play_progress_bar_id[0] || id == i_play_progress_bar_id[1] || id == i_play_progress_bar_id[2])
 	{
@@ -665,12 +659,13 @@ int Menu::send_sdl_music_event(SdlMusicOptions options, void* seek_fraction)
 		break;
 	case SdlMusicOptions::SDL_SONG_SEEK:
 	{
-		Uint32 sdl_event= sdl_event = SDL_RegisterEvents(1);
+		//Uint32 sdl_event= sdl_event = SDL_RegisterEvents(1);
 		if (Ffplay::sdl_my_event != ((Uint32)-1))
 		{
 			SDL_Event event;
 			SDL_memset(&event, 0, sizeof(event)); /* or SDL_zero(event) */
-			event.type = Ffplay::sdl_my_event;
+			//since SDL_USEREVENT is registered as 0x8000 which is 32768 we use it instead creating our own user event
+			event.type = SDL_USEREVENT;// Ffplay::sdl_my_event;
 			event.user.code = 1;
 			event.user.data1 = seek_fraction;
 			i_return = SDL_PushEvent(&event);
@@ -692,6 +687,9 @@ void Menu::play_song(wstring song_path)
 	for (int c = 0; c <= 1; c++)
 		ShowWindow(h_play_time_txt[c], true);
 
+	//this method needs to be delivered synchronously 
+	//That's because the window manager needs to be able to manage the lifetime of the text data
+	SetWindowTextW(h_parent, song_path.c_str());
 	ft_play_song = std::async(launch::async, &Menu::play_song_task, this, song_path);
 	if (i_which_main_btn_pressed != i_previous_btn_id && i_which_main_btn_pressed != i_next_btn_id)
 		update_stop_button(true);
@@ -707,11 +705,22 @@ void Menu::play_song_task(wstring song_path)
 
 	Ffplay ffplay;
 	string input{ song_path.begin(),song_path.end() };
+	
 	//lets plays the song
 	song_status.song_playing = SongStatus::SongPlaying::SONG_PLAY_PLAYING;	
 	ffplay.play_song(input, h_sdl_window, (VideoState::ShowMode) s_config_file.playback_show_mode);
 	//the song is not playing anymore
 	song_status.song_playing = SongStatus::SongPlaying::SONG_PLAY_EMPTY;
+}
+void Menu::exit_playback()
+{
+	send_sdl_music_event(SdlMusicOptions::SDL_SONG_QUIT, 0);
+	ft_play_song.get();
+	update_stop_button(false);
+	songs_to_play.clear();
+	song_status.song_number = 0;
+	close_song_gui();
+	SetWindowTextW(h_parent, L"StellerWave");
 }
 /*
 update the stop button to reflect the status of the song
@@ -786,6 +795,7 @@ void Menu::update_song_time_elapsed_task()
 	int64_t duration, time;
 	double total_secs = 0;
 	wchar_t total_time[64];
+	bool song_finished{ false };
 	for(;;)
 		if (Ffplay::is_song_duration_set())
 		{
@@ -800,6 +810,16 @@ void Menu::update_song_time_elapsed_task()
 		if (song_status.song_playing == SongStatus::SongPlaying::SONG_PLAY_EMPTY)
 			break;
 		double secs_elapsed = Ffplay::get_time_played_in_secs();
+		if (secs_elapsed >= d_play_total_time)
+		{
+			//we post the message so that we can proceed with this thread without waiting
+			if (songs_to_play.size() > song_status.song_number + 1)
+				PostMessage(h_next_btn, BM_CLICK, 0, 0);
+			else
+				exit_playback();
+			break;
+		}
+		
 
 		//set the elapsed time text label
 		int secs = secs_elapsed;
@@ -835,6 +855,7 @@ void Menu::update_song_time_elapsed_task()
 		MoveWindow(h_play_progress_bar[2], i_x, i_y, i_progress_middle_w, i_progress_middle_w, true);
 		Sleep(500);
 	}
+	
 }
 void Menu::displayLastErrorDebug(LPTSTR lpSzFunction)
 {
@@ -986,7 +1007,7 @@ void Menu::read_from_prefs_file()
 }
 void Menu::update_header_menu_items()
 {
-	HMENU main_menu = GetMenu(*h_parent); 
+	HMENU main_menu = GetMenu(h_parent); 
 	switch ( s_config_file.playback_show_mode)
 	{
 		//graphics menu
@@ -1053,6 +1074,7 @@ void Menu::menu_header_clicked(int id, HMENU parent_menu)
 		CheckMenuItem(parent_menu, i_checked_graphics_menu, MF_UNCHECKED);
 		CheckMenuItem(parent_menu, id, MF_CHECKED);
 		i_checked_graphics_menu = id;
+		s_config_file.changed = true;
 	}
 }
 Menu::~Menu()

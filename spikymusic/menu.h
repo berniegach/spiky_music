@@ -37,8 +37,8 @@ class Menu
 {
 public:
 	Menu();
-	Menu(HWND* parent, HINSTANCE* hinstance, int parent_width, int parent_height);
-	void Init(HWND* parent, HINSTANCE* hinstance, int parent_width, int parent_height);
+	Menu(HWND parent, HINSTANCE* hinstance, int parent_width, int parent_height);
+	void Init(HWND parent, HINSTANCE* hinstance, int parent_width, int parent_height);
 	void check_config_files(HWND parent);
 	void createMainButtons();
 	void drawButtons(LPDRAWITEMSTRUCT pdis);
@@ -49,6 +49,7 @@ public:
 	int send_sdl_music_event(SdlMusicOptions options, void* seek_fraction);
 	void play_song(wstring song_path);
 	void play_song_task(wstring song_path);
+	void exit_playback();
 	void update_stop_button(bool status);
 	void exit();
 	void set_song_duration_task();
@@ -76,7 +77,7 @@ private:
 	wchar_t w_config_file_path[MAX_PATH];
 		
 	//windows handles
-	HWND* h_parent;
+	HWND h_parent;
 	HINSTANCE* hinst;
 	int i_parent_width;
 	int i_parent_height;
@@ -86,9 +87,9 @@ private:
 	HWND* h_previous_window_clicked;
 	int i_repeat_btn_status = 0;
 	int i_shuffle_btn_status = 0;
-	double d_play_running_time = 1;
-	double d_play_remaining_time = 2;
-	double d_play_total_time = 3;
+	double d_play_running_time = 0;
+	double d_play_remaining_time = 0;
+	double d_play_total_time = 0;
 	int i_progress_bar_y_pos = 0;
 	//leftmost buttons 0-7
 	HWND h_comments_btn{};

@@ -144,7 +144,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			i_main_screen_width = GetSystemMetrics(SM_CXSCREEN);
 			i_main_screen_height = GetSystemMetrics(SM_CYSCREEN);
 			//create the menu buttons
-			menu.Init(&hWnd, &hInst,i_main_screen_width,i_main_screen_height);
+			menu.Init(hWnd, &hInst,i_main_screen_width,i_main_screen_height);
 
 		}
 		break;
