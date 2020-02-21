@@ -509,7 +509,7 @@ void Menu::mainButtonClicked(int id,HWND h_clicked)
 	{
 		//there are three states in the repeat button
 		//no repeat, repeat one and repeat all
-		i_repeat_btn_status = (i_repeat_btn_status + 1) % 3;		
+		i_repeat_btn_status = (i_repeat_btn_status + 1) % 3;
 		InvalidateRect(h_clicked, NULL, true);
 		UpdateWindow(h_clicked);
 	}
@@ -532,7 +532,7 @@ void Menu::mainButtonClicked(int id,HWND h_clicked)
 	else if (id == i_play_btn_id)
 	{
 		//if there are no songs in the que find the song to play
-		if ( song_status.song_playing==SongStatus::SongPlaying::SONG_PLAY_EMPTY)
+		if (song_status.song_playing == SongStatus::SongPlaying::SONG_PLAY_EMPTY)
 		{
 			FileExplorer file_explorer;
 			//make sure file_explorer is not cancelled
@@ -546,7 +546,7 @@ void Menu::mainButtonClicked(int id,HWND h_clicked)
 			else
 			{
 				wstring directory = songs_to_play.at(0);
-				wstring song_path=directory + L"\\" + songs_to_play.at(++song_status.song_number);
+				wstring song_path = directory + L"\\" + songs_to_play.at(++song_status.song_number);
 				play_song(song_path);
 			}
 		}
@@ -558,36 +558,41 @@ void Menu::mainButtonClicked(int id,HWND h_clicked)
 			{
 				if (send_sdl_music_event(SdlMusicOptions::SDL_SONG_PAUSE, 0))
 					song_status.song_playing = SongStatus::SongPlaying::SONG_PLAY_PAUSED;
-			}		
+			}
 			else if (song_status.song_playing == SongStatus::SongPlaying::SONG_PLAY_PAUSED)
 			{
-				if(send_sdl_music_event(SdlMusicOptions::SDL_SONG_PLAY, 0))
+				if (send_sdl_music_event(SdlMusicOptions::SDL_SONG_PLAY, 0))
 					song_status.song_playing = SongStatus::SongPlaying::SONG_PLAY_PLAYING;
 			}
 			//we refresh the playing button so that when we click the button a second time it reflects the pause intent
 			InvalidateRect(h_clicked, NULL, true);
 			UpdateWindow(h_clicked);
-			
+
 		}
-		
+
 	}
 	else if (id == i_next_btn_id)
 	{
 		if (songs_to_play.size() > song_status.song_number + 1)
-		{
-			//first lets quit the current song
-			//we first call the song time tasks before ending the song to make sure the main thread doesn't hang
-			song_status.song_playing = SongStatus::SongPlaying::SONG_PLAY_EMPTY;
-			ft_set_song_time_elapsed.get();
-			ft_set_song_duration.get();
-			send_sdl_music_event(SdlMusicOptions::SDL_SONG_QUIT, 0);
-			ft_play_song.get();			
-			
-			//now lets play the next song
-			wstring directory = songs_to_play.at(0);
-			wstring song_path = directory + L"\\" + songs_to_play.at(++song_status.song_number);
-			play_song(song_path);
-		}
+			;
+		else if (songs_to_play.size() == song_status.song_number + 1 && i_repeat_btn_status == 1 && songs_to_play.size() != 1)
+			song_status.song_number = 0;
+		else if (songs_to_play.size() == 1)
+			return;
+		else
+			return;
+		//first lets quit the current song
+		//we first call the song time tasks before ending the song to make sure the main thread doesn't hang
+		song_status.song_playing = SongStatus::SongPlaying::SONG_PLAY_EMPTY;
+		ft_set_song_time_elapsed.get();
+		ft_set_song_duration.get();
+		send_sdl_music_event(SdlMusicOptions::SDL_SONG_QUIT, 0);
+		ft_play_song.get();
+
+		//now lets play the next song
+		wstring directory = songs_to_play.at(0);
+		wstring song_path = directory + L"\\" + songs_to_play.at(++song_status.song_number);
+		play_song(song_path);
 	}
 	else if (id == i_previous_btn_id)
 	{
@@ -686,10 +691,20 @@ void Menu::play_song(wstring song_path)
 		ShowWindow(h_play_progress_bar[c], true);
 	for (int c = 0; c <= 1; c++)
 		ShowWindow(h_play_time_txt[c], true);
-
+	
+	wchar_t w_str[256];
+	wsprintf(w_str, L"%s", song_path.c_str());
+	
+	wchar_t* buffer;
+	wchar_t* token = wcstok_s(w_str, L"\\", &buffer);
+	std::vector<wchar_t*>v_str;
+	while (token) {
+		token = wcstok_s(NULL, L"\\", &buffer);
+		v_str.push_back(token);
+	}
 	//this method needs to be delivered synchronously 
 	//That's because the window manager needs to be able to manage the lifetime of the text data
-	SetWindowTextW(h_parent, song_path.c_str());
+	SetWindowText(h_parent, v_str.at(v_str.size() - 2));
 	ft_play_song = std::async(launch::async, &Menu::play_song_task, this, song_path);
 	if (i_which_main_btn_pressed != i_previous_btn_id && i_which_main_btn_pressed != i_next_btn_id)
 		update_stop_button(true);
@@ -809,14 +824,35 @@ void Menu::update_song_time_elapsed_task()
 	{
 		if (song_status.song_playing == SongStatus::SongPlaying::SONG_PLAY_EMPTY)
 			break;
+
 		double secs_elapsed = Ffplay::get_time_played_in_secs();
+		double* frac = (double*)malloc(sizeof(double));
+		*frac = 0.0;
 		if (secs_elapsed >= d_play_total_time)
 		{
+			if (i_repeat_btn_status == 2)
+			{
+				//we use the lambda expression
+				//the capture list uses & to saywe want to use all local variables by reference
+				std::future<void> result(std::async([&]()
+					{
+						send_sdl_music_event(SdlMusicOptions::SDL_SONG_SEEK, frac);
+					}));
+				continue;
+			}
 			//we post the message so that we can proceed with this thread without waiting
-			if (songs_to_play.size() > song_status.song_number + 1)
+			else if (songs_to_play.size() >= song_status.song_number + 1 && songs_to_play.size() != 1)
 				PostMessage(h_next_btn, BM_CLICK, 0, 0);
+			else if (songs_to_play.size() == 1 && i_repeat_btn_status == 1)
+			{
+				std::future<void> result(std::async([&]()
+					{
+						send_sdl_music_event(SdlMusicOptions::SDL_SONG_SEEK, frac);
+					}));
+				continue;
+			}
 			else
-				exit_playback();
+				 exit_playback();
 			break;
 		}
 		

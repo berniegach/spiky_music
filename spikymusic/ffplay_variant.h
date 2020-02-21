@@ -469,7 +469,7 @@ private:
     int autoexit;
     int exit_on_keydown;
     int exit_on_mousedown=1;
-    int loop =1;
+    int loop =2;
     int framedrop = -1;
     int infinite_buffer = -1;
     enum ShowMode show_mode=SHOW_MODE_NONE; //the default initializer fro is->show_mode

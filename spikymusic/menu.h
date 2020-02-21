@@ -85,6 +85,7 @@ private:
 	bool b_previous_btn_checked = false;
 	int i_which_main_btn_pressed = 0;
 	HWND* h_previous_window_clicked;
+	//no repeat = 0, repeat all = 1 and repeat one = 2
 	int i_repeat_btn_status = 0;
 	int i_shuffle_btn_status = 0;
 	double d_play_running_time = 0;
