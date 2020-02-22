@@ -18,6 +18,7 @@
 #include "Shlwapi.h"
 #include <fstream>
 #include <boost/algorithm/string/replace.hpp>
+#include <algorithm>
 
 #pragma comment (lib,"Gdiplus.lib")
 #pragma comment(lib,"SDL2.lib")
@@ -61,6 +62,7 @@ public:
 	void read_from_prefs_file();
 	void update_header_menu_items();
 	void menu_header_clicked(int id, HMENU parent_menu);
+	void shuffle_songs();
 	~Menu();
 private:
 	GdiplusStartupInput gdiplusStartupInput;
@@ -74,6 +76,7 @@ private:
 		int song_number = 0;
 	} song_status;
 	vector<wstring>songs_to_play;
+	vector<wstring>songs_to_play_temp;
 	wchar_t w_config_file_path[MAX_PATH];
 		
 	//windows handles
@@ -111,9 +114,7 @@ private:
 	HWND h_sort_by_ratings_btn{};
 	HWND h_search_similar_songs_btn{};
 	HWND h_play_progress_bar[3];
-//public :
 	HWND h_play_time_txt[2];
-//private:
 	//main window buttons
 	HWND h_favorites_add_large_btn{};
 	HWND h_sdl_window{};
@@ -147,6 +148,8 @@ private:
 	{
 		bool changed{ false };
 		enum class PlayBackShowMode{ SHOW_MODE_NONE = -1, SHOW_MODE_VIDEO = 0, SHOW_MODE_WAVES, SHOW_MODE_RDFT, SHOW_MODE_NB } playback_show_mode;
+		int i_play_repeat = 0;
+		int i_play_shuffle = 0;
 		enum class SomeValue { ONE, TWO, THREE } some_value;
 	};
 	ConfigFile s_config_file;

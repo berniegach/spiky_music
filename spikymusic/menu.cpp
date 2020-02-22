@@ -10,6 +10,8 @@ Menu::Menu()
 	GdiplusStartup(&gdiplusToken, &gdiplusStartupInput, NULL);
 	s_config_file.playback_show_mode = ConfigFile::PlayBackShowMode::SHOW_MODE_WAVES;
 	s_config_file.some_value = ConfigFile::SomeValue::THREE;
+	s_config_file.i_play_repeat = 0;
+	s_config_file.i_play_shuffle = 0;
 }
 Menu::Menu(HWND parent, HINSTANCE* hinstance,int parent_width,int parent_height)
 	:h_parent(parent),	hinst(hinstance),i_parent_width(parent_width),i_parent_height(parent_height)
@@ -19,6 +21,8 @@ Menu::Menu(HWND parent, HINSTANCE* hinstance,int parent_width,int parent_height)
 	//sdl_event= SDL_RegisterEvents(1);
 	s_config_file.playback_show_mode = ConfigFile::PlayBackShowMode::SHOW_MODE_WAVES;
 	s_config_file.some_value = ConfigFile::SomeValue::THREE;
+	s_config_file.i_play_repeat = 0;
+	s_config_file.i_play_shuffle = 0;
 	
 	createMainButtons();
 }
@@ -213,15 +217,15 @@ void Menu::drawButtons(LPDRAWITEMSTRUCT pdis)
 			hBitmap = LoadBitmap(*hinst, MAKEINTRESOURCE(IDB_FULLSCREEN_NORMAL));
 			break;
 		case 7:
-			if (i_repeat_btn_status == 0)
+			if (s_config_file.i_play_repeat == 0)
 				hBitmap = LoadBitmap(*hinst, MAKEINTRESOURCE(IDB_REPEAT_ALL_NORMAL));
-			else if (i_repeat_btn_status == 1)
+			else if (s_config_file.i_play_repeat == 1)
 				hBitmap = LoadBitmap(*hinst, MAKEINTRESOURCE(IDB_REPEAT_ALL_PRESSED));
 			else 
 				hBitmap = LoadBitmap(*hinst, MAKEINTRESOURCE(IDB_REPEAT_ONE_PRESSED));
 			break;
 		case 8:
-			if(i_shuffle_btn_status==0)
+			if(s_config_file.i_play_shuffle==0)
 				hBitmap = LoadBitmap(*hinst, MAKEINTRESOURCE(IDB_SHUFFLE_NORMAL));
 			else
 				hBitmap = LoadBitmap(*hinst, MAKEINTRESOURCE(IDB_SHUFFLE_PRESSED));
@@ -509,7 +513,9 @@ void Menu::mainButtonClicked(int id,HWND h_clicked)
 	{
 		//there are three states in the repeat button
 		//no repeat, repeat one and repeat all
-		i_repeat_btn_status = (i_repeat_btn_status + 1) % 3;
+		s_config_file.i_play_repeat = (s_config_file.i_play_repeat + 1) % 3;
+		s_config_file.i_play_repeat = s_config_file.i_play_repeat;
+		s_config_file.changed = true;
 		InvalidateRect(h_clicked, NULL, true);
 		UpdateWindow(h_clicked);
 	}
@@ -517,7 +523,8 @@ void Menu::mainButtonClicked(int id,HWND h_clicked)
 	{
 		//there are two states in the shuffle button
 		//shuffle and dont shuffle
-		i_shuffle_btn_status = (i_shuffle_btn_status + 1) % 2;
+		s_config_file.i_play_shuffle = (s_config_file.i_play_shuffle + 1) % 2;
+		shuffle_songs();
 		InvalidateRect(h_clicked, NULL, true);
 		UpdateWindow(h_clicked);
 	}
@@ -538,6 +545,7 @@ void Menu::mainButtonClicked(int id,HWND h_clicked)
 			//make sure file_explorer is not cancelled
 			if ((songs_to_play = file_explorer.find_songs_to_play(GetParent(h_clicked))).empty())
 				return;
+			shuffle_songs();
 
 			if (songs_to_play.size() == 1)
 			{
@@ -575,7 +583,7 @@ void Menu::mainButtonClicked(int id,HWND h_clicked)
 	{
 		if (songs_to_play.size() > song_status.song_number + 1)
 			;
-		else if (songs_to_play.size() == song_status.song_number + 1 && i_repeat_btn_status == 1 && songs_to_play.size() != 1)
+		else if (songs_to_play.size() == song_status.song_number + 1 && s_config_file.i_play_repeat == 1 && songs_to_play.size() != 1)
 			song_status.song_number = 0;
 		else if (songs_to_play.size() == 1)
 			return;
@@ -830,7 +838,7 @@ void Menu::update_song_time_elapsed_task()
 		*frac = 0.0;
 		if (secs_elapsed >= d_play_total_time)
 		{
-			if (i_repeat_btn_status == 2)
+			if (s_config_file.i_play_repeat == 2)
 			{
 				//we use the lambda expression
 				//the capture list uses & to saywe want to use all local variables by reference
@@ -843,7 +851,7 @@ void Menu::update_song_time_elapsed_task()
 			//we post the message so that we can proceed with this thread without waiting
 			else if (songs_to_play.size() >= song_status.song_number + 1 && songs_to_play.size() != 1)
 				PostMessage(h_next_btn, BM_CLICK, 0, 0);
-			else if (songs_to_play.size() == 1 && i_repeat_btn_status == 1)
+			else if (songs_to_play.size() == 1 && s_config_file.i_play_repeat == 1)
 			{
 				std::future<void> result(std::async([&]()
 					{
@@ -974,7 +982,10 @@ void Menu::write_to_prefs_file()
 		return;
 
 	char data_buf[256]; 
-	sprintf_s(data_buf, "%s\t%d\n%s\t%d", "PlayBackShowMode", s_config_file.playback_show_mode, "SomeValue", s_config_file.some_value);
+	sprintf_s(data_buf, "%s\t%d\n%s\t%d\n%s\t%d", 
+		"PlayBackShowMode", s_config_file.playback_show_mode, 
+		"repeat", s_config_file.i_play_repeat,
+		"shuffle", s_config_file.i_play_shuffle);
 	
 	DWORD dw_bytes_to_write = (DWORD)strlen(data_buf);
 	DWORD dw_bytes_written = 0;
@@ -1016,21 +1027,24 @@ void Menu::read_from_prefs_file()
 	if (b_error_flag)
 	{
 		char* token,* next_token, * inner_token, * inner_next_token;
-		int count = 0, inner_count = 0;
+		int count = 0;
 		token=strtok_s(data_buf, "\n", &next_token);
 		while (token) 
-		{
+		{			
+			int  inner_count = 0;
 			inner_token = strtok_s(token, "\t", &inner_next_token);
 			while (inner_token)
 			{
 				if (inner_count == 1)
 				{
+					//convert the value straight to int
+					char val = atoi(inner_token);
 					if (count == 0)
-					{
-						//convert the value straight to int
-						char val = atoi(inner_token);
 						s_config_file.playback_show_mode = (ConfigFile::PlayBackShowMode) val;
-					}
+					else if (count == 1)
+						s_config_file.i_play_repeat = val;
+					else if (count == 2)
+						s_config_file.i_play_shuffle = val;
 				}
 				inner_token = strtok_s(NULL, "\t", &inner_next_token);
 				inner_count += 1;
@@ -1112,6 +1126,20 @@ void Menu::menu_header_clicked(int id, HMENU parent_menu)
 		i_checked_graphics_menu = id;
 		s_config_file.changed = true;
 	}
+}
+void Menu::shuffle_songs()
+{
+	if (s_config_file.i_play_shuffle == 1 && songs_to_play.size() > 1)
+	{
+		songs_to_play_temp = songs_to_play;
+		std::random_shuffle(songs_to_play.begin() + 1, songs_to_play.end());
+	}
+	else if (s_config_file.i_play_shuffle == 0 && songs_to_play.size() > 1 && !songs_to_play_temp.empty())
+	{
+		songs_to_play = songs_to_play_temp;
+	}
+	s_config_file.i_play_shuffle = s_config_file.i_play_shuffle;
+	s_config_file.changed = true;
 }
 Menu::~Menu()
 {
