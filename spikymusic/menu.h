@@ -19,6 +19,7 @@
 #include <fstream>
 #include <boost/algorithm/string/replace.hpp>
 #include <algorithm>
+#include "playlist_view.h"
 
 #pragma comment (lib,"Gdiplus.lib")
 #pragma comment(lib,"SDL2.lib")
@@ -38,15 +39,18 @@ class Menu
 {
 public:
 	Menu();
-	Menu(HWND parent, HINSTANCE* hinstance, int parent_width, int parent_height);
-	void Init(HWND parent, HINSTANCE* hinstance, int parent_width, int parent_height);
+	Menu(HWND parent, HINSTANCE hinstance, int parent_width, int parent_height);
+	void Init(HWND parent, HINSTANCE hinstance, int parent_width, int parent_height);
 	void check_config_files(HWND parent);
 	void createMainButtons();
 	void drawButtons(LPDRAWITEMSTRUCT pdis);
 	void windowSizeChanged(HWND* hwnd);
 	void mainButtonClicked(int id,HWND h_clicked);
 	void paint(HDC* hdc,HWND* hwnd);
+	LRESULT playlistview_notify(HWND hwnd, LPARAM lparam);
 	typedef enum class SdlMusicOptions { SDL_SONG_QUIT, SDL_SONG_PLAY, SDL_SONG_PAUSE, SDL_SONG_SEEK } sdl_music_options;
+	bool insert_listview_items(HWND h_listview, int c_items);
+	HWND get_h_playlist_view();
 	int send_sdl_music_event(SdlMusicOptions options, void* seek_fraction);
 	void play_song(wstring song_path);
 	void play_song_task(wstring song_path);
@@ -68,6 +72,7 @@ private:
 	GdiplusStartupInput gdiplusStartupInput;
 	ULONG_PTR gdiplusToken;
 	Uint32 sdl_event ;
+	PlaylistView playlistView;
 
 	struct SongStatus
 	{
@@ -81,7 +86,7 @@ private:
 		
 	//windows handles
 	HWND h_parent;
-	HINSTANCE* hinst;
+	HINSTANCE hinst;
 	int i_parent_width;
 	int i_parent_height;
 	int i_previous_btn_pressed = 0;
@@ -118,6 +123,7 @@ private:
 	//main window buttons
 	HWND h_favorites_add_large_btn{};
 	HWND h_sdl_window{};
+	HWND h_playlist_listview{};
 	//windows ids
 	const int i_comments_btn_id{ 1 };
 	const int i_upload_btn_id{2};
@@ -138,6 +144,7 @@ private:
 	const int i_favorites_add_large_btn_id{ 20 };
 	const int i_sdl_window_id = 21;
 	const int i_stop_btn_id = 22;
+	const int i_playlist_listview_id = 23;
 
 	std::thread thread_song;
 	std::future<void> ft_play_song;

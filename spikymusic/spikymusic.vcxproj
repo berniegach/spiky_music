@@ -171,6 +171,7 @@
     <ClInclude Include="framework.h" />
     <ClInclude Include="logger.h" />
     <ClInclude Include="menu.h" />
+    <ClInclude Include="playlist_view.h" />
     <ClInclude Include="Resource.h" />
     <ClInclude Include="spikymusic.h" />
     <ClInclude Include="targetver.h" />
@@ -182,6 +183,7 @@
     <ClCompile Include="file_explorer.cpp" />
     <ClCompile Include="logger.cpp" />
     <ClCompile Include="menu.cpp" />
+    <ClCompile Include="playlist_view.cpp" />
     <ClCompile Include="spikymusic.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -199,6 +201,7 @@
     <Image Include="..\res\favorite_list_w_pressed.bmp" />
     <Image Include="..\res\fullscreen_w_normal.bmp" />
     <Image Include="..\res\fullscreen_w_pressed.bmp" />
+    <Image Include="..\res\headphones_w_normal.bmp" />
     <Image Include="..\res\launcher_icon.ico" />
     <Image Include="..\res\ms_b.ico" />
     <Image Include="..\res\next_w_normal.bmp" />

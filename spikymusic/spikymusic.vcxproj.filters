@@ -51,6 +51,9 @@
     <ClInclude Include="dump_variant.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="playlist_view.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="spikymusic.cpp">
@@ -72,6 +75,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="dump_variant.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="playlist_view.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -208,6 +214,9 @@
       <Filter>Resource Files</Filter>
     </Image>
     <Image Include="..\res\stop_w_pressed.bmp">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="..\res\headphones_w_normal.bmp">
       <Filter>Resource Files</Filter>
     </Image>
   </ItemGroup>

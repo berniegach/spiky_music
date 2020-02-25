@@ -10,7 +10,9 @@
 #include <stdlib.h>
 #include <crtdbg.h>
 
-
+#pragma comment(linker,"\"/manifestdependency:type='win32' \
+name='Microsoft.Windows.Common-Controls' version='6.0.0.0' \
+processorArchitecture='*' publicKeyToken='6595b64144ccf1df' language='*'\"")
 
 #define MAX_LOADSTRING 100
 
@@ -20,7 +22,7 @@ WCHAR szTitle[MAX_LOADSTRING];                  // The title bar text
 WCHAR szWindowClass[MAX_LOADSTRING];            // the main window class name
 Menu menu;
 int i_min_menu_id = 1;
-int i_max_menu_id = 22;
+int i_max_menu_id = 23;
 int i_current_window = 1;
 
 // Forward declarations of functions included in this code module:
@@ -33,6 +35,11 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,   _In_opt_ HINSTANCE hPrevInstan
 {
     UNREFERENCED_PARAMETER(hPrevInstance);
     UNREFERENCED_PARAMETER(lpCmdLine);
+	//initialize common controls
+	INITCOMMONCONTROLSEX iccx;
+	iccx.dwSize = sizeof(INITCOMMONCONTROLSEX);
+	iccx.dwICC = ICC_ANIMATE_CLASS | ICC_LISTVIEW_CLASSES;
+	InitCommonControlsEx(&iccx);
 
     // initialize the logger
 	logger.init();
@@ -136,6 +143,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
 	static int i_main_screen_width, i_main_screen_height;
+	static int i_playlist_view_item = 0;
 	HMENU main_menu;
 	switch (message)
 	{
@@ -144,7 +152,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			i_main_screen_width = GetSystemMetrics(SM_CXSCREEN);
 			i_main_screen_height = GetSystemMetrics(SM_CYSCREEN);
 			//create the menu buttons
-			menu.Init(hWnd, &hInst,i_main_screen_width,i_main_screen_height);
+			menu.Init(hWnd, hInst,i_main_screen_width,i_main_screen_height);
 
 		}
 		break;
@@ -219,6 +227,23 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			HWND hwnd = (HWND)lParam;
 			SelectObject(hdc, GetStockObject(DEFAULT_GUI_FONT));
 			return (INT_PTR)GetSysColorBrush(COLOR_WINDOW);
+		}
+		break;
+		case WM_NOTIFY:
+		{
+			if ((((LPNMHDR)lParam)->hwndFrom) == menu.get_h_playlist_view())
+			{
+				switch (((LPNMHDR)lParam)->code)
+				{
+				case LVN_GETDISPINFO:
+				case LVN_ODCACHEHINT:
+				case LVN_ODFINDITEM:
+				case NM_CUSTOMDRAW:
+					return menu.playlistview_notify(hWnd, lParam);
+				
+				}
+			}
+			
 		}
 		break;
 		case WM_DESTROY:
