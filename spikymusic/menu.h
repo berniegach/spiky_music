@@ -121,7 +121,7 @@ private:
 	HWND h_play_progress_bar[3];
 	HWND h_play_time_txt[2];
 	//main window buttons
-	HWND h_favorites_add_large_btn{};
+	//HWND h_favorites_add_large_btn{};
 	HWND h_sdl_window{};
 	HWND h_playlist_listview{};
 	//windows ids
@@ -141,7 +141,7 @@ private:
 	const int i_search_similar_songs_btn{ 14 };
 	const int i_play_progress_bar_id[3]{ 15,16,17 };
 	const int i_plat_time_txt_id[2]{ 18,19 };
-	const int i_favorites_add_large_btn_id{ 20 };
+	//const int i_favorites_add_large_btn_id{ 20 };
 	const int i_sdl_window_id = 21;
 	const int i_stop_btn_id = 22;
 	const int i_playlist_listview_id = 23;

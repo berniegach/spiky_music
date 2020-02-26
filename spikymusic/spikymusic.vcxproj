@@ -24,6 +24,7 @@
     <Keyword>Win32Proj</Keyword>
     <RootNamespace>spikymusic</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+    <ProjectName>spikymusic</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
@@ -202,7 +203,9 @@
     <Image Include="..\res\fullscreen_w_normal.bmp" />
     <Image Include="..\res\fullscreen_w_pressed.bmp" />
     <Image Include="..\res\headphones_w_normal.bmp" />
+    <Image Include="..\res\launcher_bitmap_b_100_by_100.bmp" />
     <Image Include="..\res\launcher_icon.ico" />
+    <Image Include="..\res\launcher_icon_b.ico" />
     <Image Include="..\res\ms_b.ico" />
     <Image Include="..\res\next_w_normal.bmp" />
     <Image Include="..\res\next_w_pressed.bmp" />

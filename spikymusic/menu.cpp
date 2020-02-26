@@ -189,10 +189,7 @@ void Menu::createMainButtons()
 	int i_big_fav_add_w = 100;
 	i_x = rect.right / 2 - i_big_fav_add_w / 2;
 	i_y = rect.bottom / 2 - i_big_fav_add_w / 2;
-	bool has_favorites = false;
-	if(!has_favorites)
-		h_favorites_add_large_btn= CreateWindow(WC_BUTTON, TEXT(""), WS_CHILD | WS_VISIBLE | BS_OWNERDRAW, i_x, i_y, i_big_fav_add_w, i_big_fav_add_w, h_parent, (HMENU)i_favorites_add_large_btn_id, hinst, NULL);
-	
+	bool has_favorites = false;	
 }
 void Menu::drawButtons(LPDRAWITEMSTRUCT pdis)
 {
@@ -501,18 +498,6 @@ void Menu::windowSizeChanged(HWND* hwnd)
 	//move the playlist view window
 	playlistView.ResizeListView(h_playlist_listview, 0, 0, rect.right, i_y);
 	ListView_SetColumnWidth(h_playlist_listview, 2, LVSCW_AUTOSIZE_USEHEADER);
-	//move the big favorite add button to the middle
-	if (IsWindowVisible(h_favorites_add_large_btn))
-	{
-		int i_big_fav_add_w = 100;
-		i_x = rect.right / 2 - i_big_fav_add_w / 2;
-		i_y = rect.bottom / 2 - i_big_fav_add_w / 2;
-		MoveWindow(h_favorites_add_large_btn, i_x, i_y, i_big_fav_add_w, i_big_fav_add_w, true);
-	}
-
-
-
-
 	
 }
 void Menu::mainButtonClicked(int id,HWND h_clicked)
@@ -522,11 +507,7 @@ void Menu::mainButtonClicked(int id,HWND h_clicked)
 	using std::async;
 	using std::launch;
 	i_which_main_btn_pressed = id;
-	//at startup we remove the large favorites button if its already show
-	//this button is to be shown only once at startup to guide the user 
-	/*if(id != i_favorites_add_large_btn_id)
-		ShowWindow(h_favorites_add_large_btn, IsWindowVisible(h_favorites_add_large_btn) ? false : false);*/
-
+	
 	if (id == i_repeat_btn_id)
 	{
 		//there are three states in the repeat button
@@ -546,14 +527,6 @@ void Menu::mainButtonClicked(int id,HWND h_clicked)
 		InvalidateRect(h_clicked, NULL, true);
 		UpdateWindow(h_clicked);
 	}
-	else if (id == i_favorites_add_large_btn_id)
-	{
-		//the large button for adding favorites has been clicked
-		//open file explorer and get the song paths
-		//we pass one to tell the class that we are adding the initial favorites
-		//FileExplorer file_explorer;
-		//file_explorer.openDialogWindow(INITIAL_LOAD_FAVORITES, h_sdl_window);
-	}
 	else if (id == i_play_btn_id)
 	{
 		//if there are no songs in the que find the song to play
@@ -568,7 +541,7 @@ void Menu::mainButtonClicked(int id,HWND h_clicked)
 			//check if we are allowed to shuffle the songs
 			shuffle_songs();
 			//if we are at playlist view hide it
-			ShowWindow(h_playlist_listview, IsWindowVisible(h_playlist_listview) ? false : true);
+			//ShowWindow(h_playlist_listview, IsWindowVisible(h_playlist_listview) ? false : true);
 
 			if (songs_to_play.size() == 1)
 			{
@@ -671,9 +644,9 @@ void Menu::mainButtonClicked(int id,HWND h_clicked)
 void Menu::paint(HDC* hdc, HWND* hwnd)
 {
 	RECT rect;
-	GetClientRect(*hwnd, &rect);
+	GetClientRect(*hwnd, &rect); 
 	Graphics graphics(*hdc);
-	//draw the bottom bounding box
+	//draw the bottom menu bar bounding box
 	Pen pen(Color(220, 220, 220));
 	int i_x = 1;
 	int i_y = rect.bottom - 60;
@@ -685,9 +658,18 @@ void Menu::paint(HDC* hdc, HWND* hwnd)
 	i_h = i_y-1;
 	i_y = 1;
 	i_w = rect.right-1;
-	SolidBrush solid_brush(Color(230, 230, 230));
-	graphics.FillRectangle(&solid_brush, i_x, i_y, i_w, i_h);
+	SolidBrush solid_brush(Color(230, 23, 230));
+	//graphics.FillRectangle(&solid_brush, i_x, i_y, i_w, i_h);
+	int i_lancher_image_w = 100;
+	i_x = rect.right / 2 - i_lancher_image_w / 2;
+	i_y = rect.bottom / 2 - i_lancher_image_w / 2;
+	HBITMAP bitmap= (HBITMAP)LoadImage(hinst, MAKEINTRESOURCE(IDB_LAUNCHER_100), IMAGE_BITMAP, 0, 0, LR_DEFAULTCOLOR);
+	HDC hMemDC = CreateCompatibleDC(*hdc);
+	SelectObject(hMemDC, bitmap);
+	BitBlt(*hdc, i_x, i_y, 100, 100, hMemDC, 0, 0, SRCCOPY);
+	DeleteDC(hMemDC);
 }
+
 LRESULT Menu::playlistview_notify(HWND hwnd, LPARAM lparam)
 {
 	return playlistView.ListViewNotify(hwnd, lparam, songs_to_play);

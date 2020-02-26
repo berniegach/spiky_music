@@ -55,6 +55,9 @@
 #define IDB_STOP_NORMAL                 169
 #define IDB_STOP_PRESSED                170
 #define IDB_HEADPHONES                  171
+#define IDI_MAIN                        173
+#define IDB_BITMAP1                     174
+#define IDB_LAUNCHER_100                174
 #define ID_FILE_ADDFAVORITES            32771
 #define ID_FILE_CLEARFAVORITES          32772
 #define ID_FILE_PLAY                    32773
@@ -81,7 +84,7 @@
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NO_MFC                     1
-#define _APS_NEXT_RESOURCE_VALUE        173
+#define _APS_NEXT_RESOURCE_VALUE        175
 #define _APS_NEXT_COMMAND_VALUE         32790
 #define _APS_NEXT_CONTROL_VALUE         1000
 #define _APS_NEXT_SYMED_VALUE           110
