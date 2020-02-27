@@ -17,6 +17,7 @@ HWND PlaylistView::CreateListView(HINSTANCE hInstance, HWND hwndParent)
         WS_CHILD |
        // WS_VISIBLE |
         //LVS_OWNERDRAWFIXED |
+        WS_BORDER|
         LVS_AUTOARRANGE |
         LVS_REPORT |
         LVS_OWNERDATA;
@@ -50,11 +51,11 @@ HWND PlaylistView::CreateListView(HINSTANCE hInstance, HWND hwndParent)
         HICON hIcon;
 
         //set up the small image list
-        hIcon = (HICON) LoadImage(hInstance, MAKEINTRESOURCE(IDB_HEADPHONES), IMAGE_ICON, 16, 16, LR_DEFAULTCOLOR);
+        hIcon = (HICON) LoadImage(hInstance, MAKEINTRESOURCE(IDI_HEADPHONES_W), IMAGE_ICON, 16, 16, LR_DEFAULTCOLOR);
         ImageList_AddIcon(himlSmall, hIcon);
 
         //set up the large image list
-        hIcon = LoadIcon(hInstance, MAKEINTRESOURCE(IDB_HEADPHONES));
+        hIcon = LoadIcon(hInstance, MAKEINTRESOURCE(IDI_HEADPHONES_W));
         ImageList_AddIcon(himlLarge, hIcon);
 
         ListView_SetImageList(hwndListView, himlSmall, LVSIL_SMALL);

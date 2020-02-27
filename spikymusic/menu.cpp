@@ -185,11 +185,6 @@ void Menu::createMainButtons()
 	h_playlist_listview = playlistView.CreateListView(hinst, h_parent);
 	//initialize the TreeView control
 	playlistView.InitListView(h_playlist_listview);
-	//check if the user has favorites added. if not show this button
-	int i_big_fav_add_w = 100;
-	i_x = rect.right / 2 - i_big_fav_add_w / 2;
-	i_y = rect.bottom / 2 - i_big_fav_add_w / 2;
-	bool has_favorites = false;	
 }
 void Menu::drawButtons(LPDRAWITEMSTRUCT pdis)
 {
@@ -496,7 +491,8 @@ void Menu::windowSizeChanged(HWND* hwnd)
 	//if (IsWindowVisible(h_sdl_window))
 		MoveWindow(h_sdl_window, 0, 0, rect.right, i_y, true);
 	//move the playlist view window
-	playlistView.ResizeListView(h_playlist_listview, 0, 0, rect.right, i_y);
+		int i_list_y = rect.bottom - 60;
+	playlistView.ResizeListView(h_playlist_listview, 200, 0, rect.right, i_list_y);
 	ListView_SetColumnWidth(h_playlist_listview, 2, LVSCW_AUTOSIZE_USEHEADER);
 	
 }

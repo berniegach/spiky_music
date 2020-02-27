@@ -202,6 +202,7 @@
     <Image Include="..\res\favorite_list_w_pressed.bmp" />
     <Image Include="..\res\fullscreen_w_normal.bmp" />
     <Image Include="..\res\fullscreen_w_pressed.bmp" />
+    <Image Include="..\res\headphones_w.ico" />
     <Image Include="..\res\headphones_w_normal.bmp" />
     <Image Include="..\res\launcher_bitmap_b_100_by_100.bmp" />
     <Image Include="..\res\launcher_icon.ico" />
